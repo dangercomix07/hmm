@@ -1,6 +1,6 @@
 # Offline Gmail / Google Groups integration harness
 
-Milestone 3 describes the offline harness. For the subsequent live **read-only** adapter and Desktop OAuth setup, see [Milestone 4A](gmail-readonly-setup.md). Live message-format validation is still pending.
+Milestone 3 describes the offline harness. For the subsequent live **read-only** adapter and Desktop OAuth setup, see [Milestone 4A](gmail-readonly-setup.md). One user-supplied live format has been replayed offline; the corrected live run remains pending.
 
 No real Google account is connected. No message can currently be approved through Google. Approval-by-reply is **UNVERIFIED**.
 

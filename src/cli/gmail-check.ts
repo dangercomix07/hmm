@@ -17,6 +17,8 @@ export function observations(email: ParsedEmail): string {
   const normalize = (value: string): string => value.replace(/\s+/g, " ").trim();
   lines.push(`MIME parsing: succeeded`, `Gmail threadId: ${email.threadId ?? "absent"}`,
     `Plain/HTML agreement: ${email.htmlText === undefined ? "no HTML alternative" : normalize(email.text) === normalize(email.htmlText) ? "match" : "differ"}`,
+    `Inline RFC822 original: ${email.inlineMessage ? "present" : "absent"}`,
+    `Original plain/HTML agreement: ${!email.inlineMessage ? "not applicable" : email.inlineMessage.htmlText === undefined ? "no HTML alternative" : normalize(email.inlineMessage.text) === normalize(email.inlineMessage.htmlText) ? "match" : "differ"}`,
     `English forwarded delimiters: ${[...email.text.matchAll(/^-{5,}\s*Forwarded message\s*-{5,}\s*$/gim)].length}`,
     `Known approval-by-reply wording present: ${/you can approve this message by replying to this email\./i.test(email.text)}`,
     "Authentication headers are observations only; sender authentication is NOT verified.");

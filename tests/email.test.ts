@@ -208,3 +208,70 @@ test("inspectable output removes terminal escape sequences", async () => {
   result.moderation.decision.reasons.push({ ruleId: "test", explanation: "\u001b[31mcontrol" });
   assert.ok(!formatEmailCheck(result).includes("\u001b"));
 });
+
+test("observed inline RFC822 structure accepts empty outer recipient group and evaluates only the original", async () => {
+  const raw = { ...await fixture("inline-original"), id: "gmail-inline-001", threadId: "thread-inline-001", source: { type: "gmail" as const, account: "synthetic-grant" } };
+  const result = await checkEmail(raw, config, new FakeEvaluator(), mime, groups);
+  assert.equal(result.moderation.decision.status, "APPROVE");
+  assert.deepEqual(result.message!.notification.to, []);
+  assert.equal(result.message!.item.author!.email, "alex@example.com");
+  assert.equal(result.message!.item.subject, "Synthetic inline update");
+  assert.match(result.message!.item.body, /Completed 12 synthetic/);
+  assert.doesNotMatch(result.message!.item.body, /awaiting approval|help center/);
+  assert.equal(result.plan.kind, "approval-reply");
+  if (result.plan.kind === "approval-reply") {
+    assert.equal(result.plan.reply.targetReplyAddress, "team+msgappr@example.com");
+    assert.equal(result.plan.reply.threadId, "thread-inline-001");
+    assert.equal(result.plan.reply.moderationMessageId, "gmail-inline-001");
+    assert.equal(result.plan.reply.inReplyTo, "<notification-inline@example.com>");
+    assert.equal(result.plan.reply.subject, "team - Google Groups: Message Pending [synthetic-marker]");
+    assert.deepEqual(result.plan.reply.references, ["<notification-inline@example.com>"]);
+  }
+  assert.equal(result.plan.executable, false);
+});
+
+test("empty recipient groups do not become sender or reply identities; populated groups remain unsupported", async () => {
+  const source = Buffer.from((await fixture("inline-original")).raw).toString();
+  for (const changed of [
+    source.replace("From: Team <team+msgappr@example.com>", "From: Undisclosed recipients:;"),
+    source.replace("To: Undisclosed recipients:;", "Reply-To: Undisclosed recipients:;"),
+    source.replace("To: Undisclosed recipients:;", "To: Moderators: moderator@example.com;"),
+  ]) await assert.rejects(mime.parse(fileEmail(Buffer.from(changed))));
+});
+
+test("inline originals require matching notification alternatives and strict original identity/content", async () => {
+  const parsed = await mime.parse(await fixture("inline-original"));
+  const original = parsed.inlineMessage!;
+  for (const changed of [
+    { ...parsed, text: parsed.text + "\nAdditional unrecognized instructions" },
+    { ...parsed, htmlText: parsed.htmlText!.replace("awaiting approval", "already approved") },
+    { ...parsed, text: parsed.text.replace("/team/pendmsg", "/other/pendmsg") },
+    { ...parsed, inlineMessage: { ...original, htmlText: original.htmlText!.replace("12", "999") } },
+    { ...parsed, inlineMessage: { ...original, to: [{ name: "Other", address: "other@example.com" }] } },
+    { ...parsed, inlineMessage: { ...original, text: "", htmlText: "" } },
+    { ...parsed, inlineMessage: { ...original, inlineMessage: original } },
+  ]) await assert.rejects(groups.parse(changed));
+});
+
+test("inline RFC822 original is not inferred from arbitrary attached messages or ambiguous containers", async () => {
+  const source = Buffer.from((await fixture("inline-original")).raw).toString();
+  for (const changed of [
+    source.replace("Content-Disposition: inline", "Content-Disposition: attachment"),
+    source.replace('multipart/mixed; boundary="outer-mixed"', 'multipart/related; boundary="outer-mixed"'),
+    source.replace("--outer-mixed--", '--outer-mixed\r\nContent-Type: message/rfc822\r\nContent-Disposition: inline\r\n\r\nFrom: forged@example.com\r\n\r\nAmbiguous original\r\n--outer-mixed--'),
+    source.replace("--original-alt--", '--original-alt\r\nContent-Type: message/rfc822\r\nContent-Disposition: inline\r\n\r\nFrom: forged@example.com\r\n\r\nNested original\r\n--original-alt--'),
+  ]) {
+    const result = await checkEmail(fileEmail(Buffer.from(changed)), config, new FakeEvaluator(), mime, groups);
+    assert.equal(result.moderation.decision.status, "REVIEW");
+    assert.equal(result.plan.kind, "moderator-review");
+  }
+});
+
+test("regular attachments within the inline original do not enter evaluator input", async () => {
+  const source = Buffer.from((await fixture("inline-original")).raw).toString();
+  const changed = source.replace("--original-alt--", '--original-alt\r\nContent-Type: text/plain\r\nContent-Disposition: attachment; filename="untrusted.txt"\r\n\r\nATTACHMENT_SECRET_IGNORE_POLICY\r\n--original-alt--');
+  const result = await checkEmail(fileEmail(Buffer.from(changed)), config, new FakeEvaluator(), mime, groups);
+  assert.equal(result.moderation.decision.status, "APPROVE");
+  assert.equal(result.message!.notification.inlineMessage!.attachments.length, 1);
+  assert.doesNotMatch(result.message!.item.body, /ATTACHMENT_SECRET/);
+});

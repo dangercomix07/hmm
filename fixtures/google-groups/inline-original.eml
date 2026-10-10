@@ -1,0 +1,93 @@
+From: Team <team+msgappr@example.com>
+To: Undisclosed recipients:;
+Subject: team - Google Groups: Message Pending [synthetic-marker]
+Message-ID: <notification-inline@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="outer-mixed"
+
+--outer-mixed
+Content-Type: multipart/alternative; boundary="notice-alt"
+
+--notice-alt
+Content-Type: text/plain; charset=utf-8
+
+
+A message has been sent to the team group and is awaiting approval. We've included this message for your review.
+
+The message requires moderation because the user does not have permission to post.
+
+You can approve or reject this message online at:
+https://groups.google.com/group/team/pendmsg
+
+or
+
+You can approve this message by replying to this email.
+
+--notice-alt
+Content-Type: text/html; charset=utf-8
+
+<html>
+  <head></head>
+  <body>
+
+  
+<table id="groups-main-content" style="position:center;margin:0 25px 0 25px; auto;font-family:arial,sans-serif" cellpadding=0 cellspacing=0>
+
+
+    <p>
+    
+    A message has been sent to the 
+  
+    <a style=color:15c;text-decoration:none href="https://groups.google.com/group/team">team</a>
+  
+ group and is awaiting approval. 
+    We've included this message for your review.</p>
+
+   <p>
+   The message requires moderation because the user does not have permission to post.</p>
+
+    <p>You can <a style=color:15c;text-decoration:none href="https://groups.google.com/group/team/pendmsg">approve or reject</a> this message
+    or you can approve this message by replying to this email.</p>
+
+  
+  <div style="margin:30px 25px 20px 24px;">
+   <a id="groups-logo" style="float:left; padding-right:20px;" href="">
+       <img height=25px src="https://www.google.com/images/logos/groups_logo.png" alt="Visit Google Groups" />
+   </a>
+   <p id="groups-footer-text" style="padding-top:4px; font-family:arial,sans-serif;color:#636363; font-size:11px">
+      <a style=color:15c;text-decoration:none href="https://groups.google.com/groups/create?src=email">Start</a> your own group,
+      <a style=color:15c;text-decoration:none href="https://groups.google.com/support/?src=email">visit</a> the help center,
+      or <a style=color:15c;text-decoration:none href="https://groups.google.com/forum/#!forum/team/abuse">report</a> abuse. 
+   </p>
+</div>
+
+  </body>
+</html>
+
+--notice-alt--
+--outer-mixed
+Content-Type: message/rfc822; charset=utf-8
+Content-Disposition: inline
+
+From: Alex Example <alex@example.com>
+To: Team <team@example.com>
+Date: Sat, 10 Oct 2026 09:00:00 +0000
+Message-ID: <original-inline@example.com>
+Subject: Synthetic inline update
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="original-alt"
+
+--original-alt
+Content-Type: text/plain; charset=utf-8
+
+Completed 12 synthetic navigation checks and measured a 4 percent improvement in the fixture dataset.
+
+Next steps:
+Benchmark the next synthetic navigation dataset.
+--original-alt
+Content-Type: text/html; charset=utf-8
+
+Completed 12 synthetic navigation checks and measured a 4 percent improvement in the fixture dataset.<br /><br />Next steps:<br />Benchmark the next synthetic navigation dataset.
+--original-alt--
+
+--outer-mixed--

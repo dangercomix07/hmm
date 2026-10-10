@@ -181,7 +181,7 @@ The good fixture returns `APPROVE` and a **non-executable** reply plan with the 
 
 Use `--config` for rules and `--email-config config/google-groups.example.yaml` for the group address, allowed notification senders, subject filter, and candidate search query. These are fixture settings, not universal Google addresses. Search matches and matching headers are not authentication.
 
-Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Attachments contribute metadata only; their contents do not go to the evaluator. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
+Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Ordinary attachments contribute metadata only; their contents do not go to the evaluator. The explicitly supported Google multipart notification can contain one inline `message/rfc822` original, whose validated author/subject/body become the item. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
 
 **No real Google account is connected. No message can currently be approved through Google.** The reply plan is marked `UNVERIFIED`; programmatic approval-by-reply still needs a disposable live test in a later milestone.
 
@@ -191,7 +191,7 @@ See [integration boundaries, official sources, and limitations](docs/gmail-googl
 
 `npm run cli -- gmail-check --inspect` reads a locally authorized Gmail account and prints decisions and non-executable plans. It requires a Desktop OAuth client and only `gmail.readonly`; the fake evaluator remains mandatory. No mail is sent, approved or modified. Existing `check-email` stays entirely offline.
 
-Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.md). No credentials are needed for development or automated tests. The real test-group notifications still need local validation; no real notification format is claimed to work yet.
+Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.md). No credentials are needed for development or automated tests. A user-supplied real notification has been replayed successfully with explicit inline RFC822 support. Rerunning both live candidates locally remains necessary; see the setup guide for observed configuration values.
 
 ## Progress and storage
 

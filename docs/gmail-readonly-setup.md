@@ -83,22 +83,38 @@ Canonical Google documentation links (blocked by this environment's network poli
 
 ## Validation and manual live record
 
-Validation: all **128 tests passed** (110 existing plus 18 new), `npm run typecheck` passed, and locked dependency installation succeeded from the local cache. The only new direct dependency is `google-auth-library` (locked via `package-lock.json`).
+Validation: all **133 tests passed** (110 original plus 23 new), `npm run typecheck` passed, and locked dependency installation succeeded from the local cache. The only new direct dependency is `google-auth-library` (locked via `package-lock.json`).
 
-Implementation files: `src/adapters/auth/gmail-oauth.ts`, `src/adapters/inbox/real-gmail-client.ts`, `src/cli/gmail-check.ts`, CLI routing/exports, the local config example, ignore rules, and `tests/real-gmail.test.ts`. The existing Gmail interface and transport are reused, with only stale comments/error wording updated. No evaluator, policy, MIME parser or Groups parser behavior changed.
+Implementation files: `src/adapters/auth/gmail-oauth.ts`, `src/adapters/inbox/real-gmail-client.ts`, `src/cli/gmail-check.ts`, CLI routing/exports, the local config example, ignore rules, and `tests/real-gmail.test.ts`. The existing Gmail interface and transport are reused, with only stale comments/error wording updated. The follow-up parser correction supports empty outer recipient groups and one explicitly validated inline RFC822 original; evaluator and policy behavior are unchanged.
 
 Automated tests mock the Gmail HTTP boundary and OAuth library boundary; callback tests use local loopback only. CI needs no Google credentials, browser login or external API access. Existing offline tests are preserved.
 
-Live OAuth was **not completed** in the cloud. No Gmail connector or moderator authorization was available. The two reported pending notifications were **not read**, and actual sender, reply metadata, body structure, MIME alternatives and authentication headers remain **unobserved**. No difference from synthetic fixtures is asserted. No parser acceptance rules were changed.
+The user completed local read-only OAuth and reported **two candidates fetched**. Both initially returned REVIEW because `To: Undisclosed recipients:;` was rejected. One supplied original email was replayed offline after the correction and returned **APPROVE with a non-executable approval-reply plan**. This is not a live approval, and the second candidate has not been replayed. Rerun both locally after updating.
+
+The observed format is multipart/mixed: a multipart/alternative notification wrapper plus one inline message/rfc822 original. Gmail's displayed forwarded divider is not present in the raw wrapper. The wrapper's plain/HTML texts differ in predictable link/footer wording; only this explicit template is supported. The original's own plain/HTML content must still agree. Ordinary attachment contents remain excluded, and multiple/nested inline originals fail closed. The regression fixture uses synthetic identities, message IDs and update content; private delivery headers were not committed.
+
+Observed non-private configuration for this test group:
+
+```yaml
+group_address: hmm-testing@googlegroups.com
+notification_senders:
+  - hmm-testing+msgappr@googlegroups.com
+subject_contains: 'Google Groups: Message Pending'
+gmail_query: 'from:hmm-testing+msgappr@googlegroups.com subject:"Message Pending" newer_than:30d'
+```
+
+Keep these settings in the ignored `config/google-groups.local.yaml`; no credentials belong there. The supplied notification has no Reply-To, References or In-Reply-To. The plan therefore targets the outer From and uses the outer pending Message-ID as its reply parent. Its subject includes a pending-message marker and is preserved exactly. The forwarded original identifies the configured group in To. Its original subject literally contains `Subject:`; the parser preserves this text instead of guessing a correction.
+
+The supplied raw headers contain Authentication-Results and Received-SPF reporting passes, a googlegroups.com DKIM signature, and ARC headers. These are observations from pasted input, not independent authentication verification. Private identifiers, signature values and delivery headers are omitted here. Live approval-by-reply behavior remains unverified.
 
 After the local run, record privately for each of the two messages:
 
 | Check | Actual result |
 | --- | --- |
-| Candidate count | Pending local test |
-| MIME parsing and Groups parsing | Pending local test |
-| Original author/subject correct | Pending local test |
-| Decision and non-executable plan | Pending local test |
+| Candidate count | User reported two fetched |
+| MIME parsing and Groups parsing | Supplied first original passes offline replay after correction; rerun both locally |
+| Original author/subject correct | Extracted from supplied first original; user confirmation on rerun |
+| Decision and non-executable plan | Supplied original: APPROVE, non-executable approval-reply plan |
 | From / Reply-To / Message-ID / References / In-Reply-To / threadId | Pending local inspection |
 | Group recipient, delimiter and original-body structure | Pending local inspection |
 | Plain/HTML agreement and approval wording | Pending local inspection |

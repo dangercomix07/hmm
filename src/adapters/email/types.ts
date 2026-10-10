@@ -27,6 +27,8 @@ export interface ParsedEmail {
   text: string;
   htmlText?: string;
   attachments: AttachmentMetadata[];
+  /** One bounded inline RFC822 candidate; accepted only by an explicit source format. */
+  inlineMessage?: ParsedEmail;
 }
 
 export interface ModerationEmail {
