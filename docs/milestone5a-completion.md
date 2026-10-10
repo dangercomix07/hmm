@@ -1,5 +1,9 @@
 # Milestone 5A completion report
 
+> Historical development record. See the [current release](releases/v0.2.0-supervised-mvp.md)
+> and [current setup](supervised-moderation.md) instead of historical branch commands.
+
+
 Branch: `milestone5a-safety-foundations`, based on `v0.1.0-milestone4b` (`88911e4`).
 Main and the 4A/4B branches are unchanged. No next milestone was started.
 

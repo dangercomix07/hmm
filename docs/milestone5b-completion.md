@@ -1,5 +1,9 @@
 # Milestone 5B completion report
 
+> Historical development record. See the [current release](releases/v0.2.0-supervised-mvp.md)
+> and [current setup](supervised-moderation.md) instead of historical branch commands.
+
+
 Completed on 11 October 2026. Branch: `milestone5b-deterministic-product`.
 Baseline: Milestone 5A commit `b7b72f3`. Historical milestone branches and main are unchanged.
 

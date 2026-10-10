@@ -1,18 +1,14 @@
-# Manual Google Groups integration test
+# Manual Google Groups acceptance test
 
-The user completed the controlled local API reply experiment for HMM TEST 003 and confirmed publication. See the [completion record](milestone4b-completion.md) and [current command/setup guide](gmail-approval-test.md). This procedure remains manual and must never run in CI.
+Follow the [current supervised procedure](supervised-moderation.md#disposable-group-acceptance-test)
+with fresh disposable-group posts. Never perform live sends in CI.
 
-The result applies to the disposable test group and selected post. It does not establish production readiness or automatic sender authentication. For further experiments, use a fresh pending post and the explicit `approve-test` confirmation flow.
+Inspect the original update, group, recipient and threading before confirming
+one APPROVE. REJECT and REVIEW must send nothing. Verify publication manually
+and check a second run skips the recorded approval. Do not delete the ledger.
 
-1. Use a disposable test group and a moderator account authorized for that group.
-2. Submit one synthetic message with a unique subject and fake content.
-3. Confirm that this exact message enters the moderation queue.
-4. Run the Gmail adapter in dry-run mode, scoped to that group and exact moderation message ID.
-5. Inspect the sender, group identity, reply target, thread headers, author, subject, and extracted original body. Stop on any ambiguity.
-6. Confirm that the deterministic decision applies to that original message. Do not use the fake evaluator to moderate real submissions.
-7. Explicitly enable one reply for that exact disposable message only. Leave all other pending messages excluded.
-8. Reply programmatically using the verified Google message instructions and required thread headers.
-9. Independently check whether Google Groups published the original message. A successful Gmail send alone does not prove approval.
-10. Record the observed format and behavior, restore dry-run mode, and delete disposable test data as appropriate.
-
-If it does not work, keep live approval disabled. Do not guess at alternative approval actions against real pending messages.
+LIVE A publication was user-confirmed; B/D sent nothing and C required review.
+A later run skipped LIVE A and the recorded HMM TEST 003. The older unrecorded
+TEST 001 was separately confirmed and sent; its publication was not reported.
+Search finds notifications, not current pending status.
+See [the release record](releases/v0.2.0-supervised-mvp.md).

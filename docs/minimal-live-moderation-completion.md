@@ -1,5 +1,9 @@
 # Minimal supervised live moderation MVP completion record
 
+> Historical development record. See the [current release](releases/v0.2.0-supervised-mvp.md)
+> and [current setup](supervised-moderation.md) instead of historical branch commands.
+
+
 Branch: `minimal-live-moderation`.
 Base: `work-updates-101-deterministic` at `f13357c`.
 Implementation commit: the commit adding this record (resolve with

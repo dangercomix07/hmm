@@ -3,7 +3,7 @@
 This is a local development prototype. Only explicit disposable-group tests are supported; it is not ready for production or unattended moderation.
 
 - Treat input and evaluator output as untrusted data. AI output cannot choose actions or approval targets.
-- Keep test sending disabled except during the controlled experiment. `approve-test` can send one real reply after exact human confirmation; the other CLI commands remain dry-run/read-only.
+- Keep test sending disabled except during the controlled experiment. `approve-test` can send one real reply after exact human confirmation; moderate-gmail also sends only after exact per-message confirmation. Other commands cannot send.
 - Do not put credentials, real moderation emails, or private team updates into fixtures or Git.
 - Logs and stored results can contain message text and evaluator explanations. Review what you retain and who can read it.
 - Provider exceptions are reported generically so exception strings cannot leak tokens into decision output.

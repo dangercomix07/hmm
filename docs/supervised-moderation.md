@@ -4,11 +4,14 @@ Run from the repository root on your own computer:
 
 ```powershell
 git fetch origin
-git switch minimal-live-moderation
-git pull --ff-only origin minimal-live-moderation
+git switch main
+git pull --ff-only origin main
 npm ci
+npm run config:check
 npm run cli -- moderate-gmail
 ```
+
+For first-time setup, follow [Google OAuth setup](gmail-readonly-setup.md).
 
 Use the existing desktop OAuth JSON at `.secrets/gmail-desktop.json` and token
 at `.tokens/gmail.json`. The same OAuth client works; a new download is not
