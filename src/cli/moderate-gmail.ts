@@ -16,7 +16,7 @@ import { GmailReplyExecutor } from "../adapters/approval/gmail-reply-executor.js
 import { LocalActionLedger } from "../adapters/ledger/local-action-ledger.js";
 import type { ActionLedger } from "../ports/action-ledger.js";
 import type { EmailReplyExecutor } from "../ports/email-reply-executor.js";
-import { digest } from "../adapters/approval/action-identity.js";
+import { digest, sourceKey } from "../adapters/approval/action-identity.js";
 
 // Source text cannot insert terminal controls, fake labels or confirmation prompts.
 const quoted = (s: string): string => JSON.stringify(s).replace(/[\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
@@ -56,16 +56,16 @@ export async function runSupervisedSession(session: SupervisedSession): Promise<
       "Original update (each source line quoted):",
       ...(item?.body ?? "(unavailable)").split(/\r?\n/).map(line => "  " + quoted(line)),
       `Decision: ${result.moderation.decision.status}`,
-      ...result.moderation.deterministic.map(r => r.result === "PASS" ? `PASS ${r.ruleId}` : `${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
+      ...result.moderation.deterministic.map(r => `${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
       ...result.moderation.decision.reasons.map(r => quoted(r.explanation)),
     ].join("\n"));
     if (result.plan.kind !== "approval-reply") {
       display("External action: NONE — message remains pending.");
       continue;
     }
-    const previous = await ledger.get(result.plan.reply.actionId);
+    const previous = await ledger.executionStatus(result.plan.reply.actionId, sourceKey(account, raw.id));
     if (previous) {
-      display(`Ledger: ${previous.state}. External action: NONE — this action cannot be resent.`);
+      display(`Ledger: ${previous}. External action: NONE — this action cannot be resent.`);
       continue;
     }
     // Re-fetch and re-evaluate after displaying the update, immediately before confirmation.

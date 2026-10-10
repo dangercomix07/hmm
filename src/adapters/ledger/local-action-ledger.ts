@@ -31,6 +31,18 @@ export class LocalActionLedger implements ActionLedger {
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     if (!(await lstat(this.directory)).isDirectory()) throw new Error("Invalid ledger directory");
   }
+  async executionStatus(actionId: string, sourceKey: string): Promise<ActionState | "LEGACY_OR_INCOMPLETE" | undefined> {
+    if (!hex(sourceKey) || actionIdFor(sourceKey) !== actionId) throw new Error("ActionId mismatch");
+    const current = await this.get(actionId);
+    if (current) return current.state;
+    // Any legacy/partial sentinel blocks. Do not interpret, migrate or reset it.
+    try { await lstat(join(this.directory, `${sourceKey}.json`)); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw new Error("Unreadable execution reservation; no send.");
+    }
+    return "LEGACY_OR_INCOMPLETE";
+  }
   async reserve(action: ActionIdentity): Promise<ActionRecord> {
     action = { actionId: action.actionId, sourceKey: action.sourceKey, planDigest: action.planDigest };
     identity(action); await this.root();

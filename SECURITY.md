@@ -65,9 +65,16 @@ nothing; reservation and DISPATCHING persist before a send request. No
 unattended mode or force-approval option exists. A rule APPROVE alone is never
 execution permission. Raw Gmail auth provenance remains unverified.
 
-Authentication evidence is scoped to the outer Groups notification. The attached
-message/rfc822 original may contain AR/ARC headers for its own delivery; these
-are ignored for notification trust, not promoted to transport evidence. Nested
-headers cannot repair failed or missing outer evidence, and do not veto otherwise
-valid outer observations. TRUSTED still requires an exact-byte-bound trusted
-ingress attestation; supervised compatibility still requires its explicit flag.
+Authentication evidence is scoped to the outer Groups notification. Nested
+AR/ARC headers never establish wrapper trust. Their presence keeps the supported
+inline-RFC822 case INDETERMINATE, even with an ingress provider. Only after all
+required outer authentication observations pass can this case be eligible for
+the explicitly configured supervised test-only exception. Missing required,
+malformed, contradictory or failed outer evidence cannot use this exception
+for the nested-auth case. Normal execution remains blocked; there is no
+unattended compatibility path.
+
+The supervised ledger preflight checks both the current ActionId journal and
+the source-key sentinel used by legacy/partial reservations. Any such sentinel
+suppresses confirmation without interpreting or rewriting it. This read-only
+check is advisory: the executor still atomically reserves before submission.

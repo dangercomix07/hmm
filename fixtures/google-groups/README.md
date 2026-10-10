@@ -27,3 +27,12 @@ All messages, identities, and content here are invented. These are RFC/MIME mess
 Expected decisions use the fake evaluator only. It is a pattern-based demo and is not a prompt-injection defense or a real assessment of these messages.
 
 `inline-original.eml` reproduces the structure of a user-observed Google multipart/mixed notification with an empty outer recipient group and one inline RFC822 original. All identities, message IDs and update text are synthetic; no private transport/authentication headers are retained. It is the explicit exception to ordinary attachment-content exclusion. The plain/HTML notification wrappers differ in fixed link/footer wording; the original alternatives agree.
+
+
+`supervised-nested-auth.eml` is entirely synthetic. It models a Groups outer
+multipart/mixed notification, multipart/alternative notice, and inline
+message/rfc822 original carrying separate authentication/ARC headers. Domains,
+addresses, identifiers and signature values are synthetic; no private headers
+were copied. The outer and nested ARC blocks are syntax fixtures, not valid
+cryptographic signatures. This tests explicit supervised compatibility, never
+TRUSTED authentication.

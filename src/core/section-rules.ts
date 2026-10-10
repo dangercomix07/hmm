@@ -19,22 +19,25 @@ export function sectionRule(rule: DeterministicRule, parsed: SectionParse, unkno
   }
   if (rule.check === "total_length") {
     const length = Array.from(parsed.original.trim()).length;
-    return make(length >= rule.min && length <= rule.max ? "PASS" : "FAIL", `Update must contain between ${rule.min} and ${rule.max} characters.`);
+    return make(length >= rule.min && length <= rule.max ? "PASS" : "FAIL", length >= rule.min && length <= rule.max ? "Update length is within the configured limits." : `Update must contain between ${rule.min} and ${rule.max} characters.`);
   }
   if (!("section" in rule)) return undefined;
   const sections = parsed.sections.filter(s => s.name === rule.section);
-  if (rule.check === "required_section") return make(sections.length ? "PASS" : "FAIL", `Missing required section: ${rule.section}.`, "missing");
-  if (rule.check === "unique_section") return make(sections.length > 1 ? "UNCERTAIN" : "PASS", `Duplicate section: ${rule.section}. Keep one section with this heading.`, "ambiguous");
+  if (rule.check === "required_section") return make(sections.length ? "PASS" : "FAIL", sections.length ? `Required section '${rule.section}' is present.` : `Missing required section: ${rule.section}.`, "missing");
+  if (rule.check === "unique_section") return make(sections.length > 1 ? "UNCERTAIN" : "PASS", sections.length > 1 ? `Duplicate section: ${rule.section}. Keep one section with this heading.` : `No duplicate ${rule.section} section found.`, "ambiguous");
   if (sections.length > 1) return make("UNCERTAIN", `Duplicate section: ${rule.section}.`, "ambiguous");
   // Presence and content are separate. Optional sections are checked only when supplied.
   if (!sections.length) return make("PASS", "Section is absent; presence is checked separately.");
   const text = sections[0]!.content;
   const lines = contentLines(text);
   switch (rule.check) {
-    case "nonempty_section": return make(lines.length && lines.some(s => /[\p{L}\p{N}]/u.test(s)) ? "PASS" : "FAIL", `${rule.section} section is empty.`);
+    case "nonempty_section": {
+      const populated = lines.length && lines.some(s => /[\p{L}\p{N}]/u.test(s));
+      return make(populated ? "PASS" : "FAIL", populated ? `${rule.section} contains content.` : `${rule.section} section is empty.`);
+    }
     case "section_length": {
       const length = Array.from(text.trim()).length;
-      return make(length >= rule.min && length <= rule.max ? "PASS" : "FAIL", `${rule.section} must contain between ${rule.min} and ${rule.max} characters.`);
+      return make(length >= rule.min && length <= rule.max ? "PASS" : "FAIL", length >= rule.min && length <= rule.max ? `${rule.section} length is within the configured limits.` : `${rule.section} must contain between ${rule.min} and ${rule.max} characters.`);
     }
     case "bullet_count": {
       let fence: string | undefined;
@@ -47,9 +50,9 @@ export function sectionRule(rule: DeterministicRule, parsed: SectionParse, unkno
         }
         return !fence && /^\s*(?:[-*+] |\d+[.)] )\S/.test(line);
       }).length;
-      return make(count >= rule.min && count <= rule.max ? "PASS" : "FAIL", `${rule.section} must contain between ${rule.min} and ${rule.max} bullets.`);
+      return make(count >= rule.min && count <= rule.max ? "PASS" : "FAIL", count >= rule.min && count <= rule.max ? `${rule.section} bullet count is within the configured limits.` : `${rule.section} must contain between ${rule.min} and ${rule.max} bullets.`);
     }
-    case "section_url": return make(hasUrl(text) ? "PASS" : "FAIL", `${rule.section} requires an HTTP or HTTPS link.`);
+    case "section_url": return make(hasUrl(text) ? "PASS" : "FAIL", hasUrl(text) ? `${rule.section} contains an HTTP or HTTPS link.` : `${rule.section} requires an HTTP or HTTPS link.`);
     case "forbidden_placeholder": {
       const normalize = (s: string) => s.toLowerCase().replace(/[.!]+$/, "").replace(/^[*_`]+|[*_`]+$/g, "").replace(/[.!]+$/, "").trim();
       const phrases = new Set(rule.phrases.map(normalize));
@@ -59,7 +62,7 @@ export function sectionRule(rule: DeterministicRule, parsed: SectionParse, unkno
         const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, "iu").test(line);
       }));
-      return make(hits && hits === placeholderLines.length ? "FAIL" : contains && rule.mixed_action !== "ignore" ? "UNCERTAIN" : "PASS", hits && hits === placeholderLines.length ? `${rule.section} section contains only placeholder text.` : `${rule.section} mixes placeholder text with other content; review the unfinished entries.`, "placeholder");
+      return make(hits && hits === placeholderLines.length ? "FAIL" : contains && rule.mixed_action !== "ignore" ? "UNCERTAIN" : "PASS", hits && hits === placeholderLines.length ? `${rule.section} section contains only placeholder text.` : contains && rule.mixed_action !== "ignore" ? `${rule.section} mixes placeholder text with other content; review the unfinished entries.` : `No forbidden placeholder-only content found in ${rule.section}.`, "placeholder");
     }
   }
 }

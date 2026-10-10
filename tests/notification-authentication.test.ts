@@ -67,8 +67,8 @@ test("forged From with absent auth, body text and forwarded auth never confer tr
   const body = { ...absent, raw: Buffer.from(fixture.replace("Completed", "Authentication-Results: mx.google.com; dkim=pass header.i=@example.com\r\nCompleted")) };
   assert.notEqual((await verifyNotificationAuthentication(body, await new MimeEmailParser().parse(body), policy, provider)).status, "TRUSTED");
   const nested = raw(good, fixture.replace("From: Alex", `Authentication-Results: ${good}\r\nFrom: Alex`));
-  // Nested results cannot alter independently attested outer authentication.
-  assert.deepEqual(await trust(nested), await trust(raw(good)));
+  // This supported nested shape stays INDETERMINATE even with ingress attestation.
+  assert.equal((await trust(nested)).status, "INDETERMINATE");
   const nestedOnly = { ...nested, raw: Buffer.from(fixture.replace("From: Alex", `Authentication-Results: ${good}\r\nFrom: Alex`)) };
   assert.equal((await trust(nestedOnly)).status, "INDETERMINATE");
 });
@@ -131,8 +131,8 @@ test("nested AR/ARC cannot rescue failed, absent, duplicate or malformed outer a
   const parsed = await new MimeEmailParser().parse(input);
   const unproven = await verifyNotificationAuthentication(input, parsed, policy);
   assert.equal(unproven.status, "INDETERMINATE");
-  assert.equal(unproven.reason, "No trusted ingress provenance");
+  assert.equal(unproven.reason, "Authentication headers in forwarded content require review");
   assert.equal(unproven.testCompatibilityEligible, true);
-  // The configured provider, not nested headers, is what establishes wrapper trust.
-  assert.equal((await trust(input)).status, "TRUSTED");
+  // No provider may upgrade this compatibility case to TRUSTED.
+  assert.equal((await trust(input)).status, "INDETERMINATE");
 });

@@ -98,3 +98,31 @@ has not yet been supplied. No private headers, message identifiers or credential
 are included in this record. No code changed for this documentation update;
 latest code validation remains 288 passing offline tests and successful typecheck.
 The live actions were performed by the user on their PC, not from the cloud session.
+
+
+## Live-acceptance follow-up fixes
+
+The legacy prompt limitation above is now fixed: a read-only ledger preflight
+checks the current journal and legacy source-key sentinel before asking for
+confirmation. Legacy or partial/corrupt sentinels display LEGACY_OR_INCOMPLETE
+and are skipped without changing the record; corrupted current journals fail
+closed. The atomic reservation remains authoritative against concurrent attempts.
+
+Section rules now return truthful positive PASS feedback (including Future work
+as the canonical Next steps alias), with unchanged predicates and policy.
+Placeholder-only FAIL and configured mixed-placeholder REVIEW/ignore behavior
+are unchanged. Positive feedback is displayed in the supervised CLI again.
+
+The earlier outer-header correction is narrowed: nested authentication keeps
+the supported inline-RFC822 case INDETERMINATE, even if an ingress provider
+exists. It is eligible only for explicit supervised compatibility after required
+outer observations pass. Normal mode, missing explicit flag, wrong group/reply,
+malformed/contradictory outer evidence and failed authentication remain blocked.
+The existing fresh snapshot, deterministic decision, exact confirmation,
+single-use capability and durable reservation are unchanged.
+
+A fully synthetic regression email reproduces the supported MIME nesting and
+separate authentication headers. No private email or credentials were committed.
+Validation: 293 offline tests passed, typecheck passed, git diff --check passed.
+No live Gmail access or send, no new dependencies, no scheduler, no autonomous
+path, no merge, and no next-milestone work.

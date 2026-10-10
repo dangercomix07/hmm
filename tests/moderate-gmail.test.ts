@@ -1,6 +1,6 @@
 import test, { type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -44,7 +44,7 @@ async function harness(t: TestContext, initial = message()) {
     display(text: string) { output.push(text); },
     async confirm() { prompts++; assert.match(output.join("\n"), /THIS WILL SEND ONE REAL EMAIL/); return answer; },
   };
-  return { session, output, ledger, counts: () => ({ sends, prompts }), change: (value: GmailMessage) => { fresh = value; },
+  return { session, output, ledger, dir, counts: () => ({ sends, prompts }), change: (value: GmailMessage) => { fresh = value; },
     answer: (value: string | undefined) => { answer = value; }, timeout: () => { timeout = true; } };
 }
 test("supervised deterministic profile approves concise Future work without API keys and persists one send", async t => {
@@ -143,15 +143,7 @@ test("two simultaneous sessions cannot both submit the same confirmed action", a
 
 test("Groups wrapper with nested original authentication reaches only explicit supervised confirmation", async t => {
   const data = message();
-  const outer = "Authentication-Results: mx.google.com; dkim=pass header.i=@googlegroups.com; spf=pass smtp.mailfrom=bounce@googlegroups.com; dmarc=pass header.from=googlegroups.com\r\n" +
-    "ARC-Seal: i=1; a=rsa-sha256; d=google.com; s=synthetic; cv=none; b=YWJj\r\n" +
-    "ARC-Message-Signature: i=1; a=rsa-sha256; d=google.com; s=synthetic; h=from; bh=YWJj; b=YWJj\r\n" +
-    "ARC-Authentication-Results: i=1; mx.google.com; dkim=pass header.i=@googlegroups.com\r\n";
-  const original = Buffer.from(data.raw, "base64url").toString()
-    .replaceAll("team@example.com", "team@googlegroups.com")
-    .replaceAll("team+msgappr@example.com", "team+msgappr@googlegroups.com")
-    .replace("From: Alex", "Authentication-Results: gmr-mx.google.com; dkim=pass header.i=@example.com\r\nARC-Seal: i=2; nested-untrusted-observation\r\nFrom: Alex");
-  data.raw = Buffer.from(outer + original).toString("base64url");
+  data.raw = (await readFile("fixtures/google-groups/supervised-nested-auth.eml")).toString("base64url");
   const h = await harness(t, data);
   h.answer("cancel");
   await runSupervisedSession({
@@ -164,4 +156,39 @@ test("Groups wrapper with nested original authentication reaches only explicit s
   assert.match(h.output.join("\n"), /WARNING: Notification origin/);
   assert.match(h.output.join("\n"), /PASS next-present/);
   assert.doesNotMatch(h.output.join("\n"), /PASS [^\n]*Missing required section|PASS [^\n]*section is empty|PASS [^\n]*placeholder text/);
+});
+
+test("legacy and partial execution records skip confirmation without modifying records", async t => {
+  for (const content of ['{"status":"SENT"}', '{"status":"ATTEMPTING"}', '', 'corrupt']) {
+    const h = await harness(t);
+    const path = join(h.dir, sourceKey(account, "candidate1") + ".json");
+    await writeFile(path, content);
+    await runSupervisedSession(h.session);
+    assert.deepEqual(h.counts(), { prompts: 0, sends: 0 });
+    assert.match(h.output.join("\n"), /Ledger: LEGACY_OR_INCOMPLETE/);
+    assert.equal(await readFile(path, "utf8"), content);
+  }
+});
+test("real-shape nested authentication retains every supervised gate", async t => {
+  const original = await readFile("fixtures/google-groups/supervised-nested-auth.eml", "utf8");
+  const data = { ...message(), raw: Buffer.from(original).toString("base64url") };
+  const boundGroups = { ...groups, group_address: "team@googlegroups.com", notification_senders: ["team+msgappr@googlegroups.com"] };
+  const allowed = { ...sending, allowed_groups: ["team@googlegroups.com"], allowed_reply_addresses: ["team+msgappr@googlegroups.com"] };
+  for (const change of [
+    { test_only_allow_unverified_authentication: false }, { enabled: false }, { test_only: false },
+    { allowed_groups: ["wrong@example.com"] }, { allowed_reply_addresses: ["wrong@example.com"] },
+  ]) {
+    const h = await harness(t, data);
+    await assert.rejects(runSupervisedSession({ ...h.session, groups: boundGroups, sending: { ...allowed, ...change } as typeof allowed }));
+    assert.deepEqual(h.counts(), { prompts: 0, sends: 0 });
+  }
+  for (const text of [
+    original.replace("dkim=pass", "dkim=fail"),
+    original.replace("Authentication-Results: mx.google.com;", "Authentication-Results: mx.google.com; dkim=fail header.i=@googlegroups.com;"),
+    original.replace("ARC-Seal: i=1;", "ARC-Seal: i=9;"),
+  ]) {
+    const h = await harness(t, { ...data, raw: Buffer.from(text).toString("base64url") });
+    await assert.rejects(runSupervisedSession({ ...h.session, groups: boundGroups, sending: allowed }), /Authentication/);
+    assert.deepEqual(h.counts(), { prompts: 0, sends: 0 });
+  }
 });

@@ -19,10 +19,11 @@ export async function verifyNotificationAuthentication(raw: RawEmail, parsed: Pa
   try {
     validateAuthenticationPolicy(policy);
     const headers = parsed.headers;
-    // Only the outer notification is the authentication subject. A message/rfc822
-    // original legitimately carries its own AR/ARC headers. They are untrusted
-    // member content: neither evidence for the wrapper nor a reason to veto it.
-    // Never merge them into this header map or consult them for ingress provenance.
+    // Nested auth never proves the wrapper's origin. Preserve normal fail-closed
+    // handling; admit this supported shape only to explicit supervised compatibility,
+    // after all required outer observations have passed validation below.
+    const nestedAuthentication = parsed.inlineMessage !== undefined &&
+      Object.keys(parsed.inlineMessage.headers).some(k => /^(authentication-results|arc-)/.test(k));
     const arcNames = ["arc-seal", "arc-message-signature", "arc-authentication-results"];
     const arc = arcNames.map(n => headers[n] ?? []);
     if (arc.some(a => a.length)) {
@@ -48,7 +49,7 @@ export async function verifyNotificationAuthentication(raw: RawEmail, parsed: Pa
       }
     }
     const values = headers["authentication-results"] ?? [];
-    if (!values.length) return result("INDETERMINATE", "Missing authentication evidence", true);
+    if (!values.length) return result("INDETERMINATE", "Missing authentication evidence", !nestedAuthentication);
     if (values.length !== 1) return result("INDETERMINATE", "Duplicate Authentication-Results");
     // Remove bounded RFC comments; reject escaped/unterminated or excessive nesting rather than guessing.
     let depth = 0, clean = "";
@@ -85,6 +86,7 @@ export async function verifyNotificationAuthentication(raw: RawEmail, parsed: Pa
       if (!domain || !policy.acceptedDomains.includes(domain)) return result("UNTRUSTED", `Unaccepted ${name} domain`);
       if (name === "dmarc" && parsed.from?.address.split("@").at(-1)?.toLowerCase() !== domain) return result("UNTRUSTED", "DMARC From alignment mismatch");
     }
+    if (nestedAuthentication) return result("INDETERMINATE", "Authentication headers in forwarded content require review", true);
     if (!provider) return result("INDETERMINATE", "No trusted ingress provenance", true);
     const evidence = await provider.attest(structuredClone(raw));
     if (!evidence || evidence.rawSha256 !== rawSha256(raw) || !policy.trustedBoundaryIds.includes(evidence.boundaryId)) return result("INDETERMINATE", "Ingress attestation absent or mismatched");

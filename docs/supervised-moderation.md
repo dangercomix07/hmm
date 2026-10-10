@@ -59,7 +59,8 @@ The existing executor atomically reserves the action **after confirmation,
 before sending**. This preserves cancellation without burning a permanent
 reservation. A concurrent session cannot acquire the same reservation. Every
 existing ledger state, including FAILED_SAFE, suppresses another offer; legacy
-reservations still block at the executor. Keep `.hmm/actions` intact on this
+or partial reservations also suppress confirmation. Reservation is still checked
+atomically at the executor. Keep `.hmm/actions` intact on this
 computer. It does not coordinate a second computer with a separate ledger.
 
 A send timeout stops the session with UNCERTAIN; there is no retry. A failed
