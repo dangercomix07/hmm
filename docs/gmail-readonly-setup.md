@@ -1,5 +1,7 @@
 # Local Gmail read-only test (Milestone 4A)
 
+For the separate opt-in sending experiment, see [Milestone 4B](gmail-approval-test.md). `gmail-check` retains the read-only behavior documented here.
+
 This command reads candidate emails and prints decisions and non-executable plans. It cannot send, draft, approve, mark read, archive or modify mail. It uses the fake evaluator: private email is not sent to Jev. No credentials are needed for development or `npm test`.
 
 ## Google setup on your PC
@@ -89,7 +91,7 @@ Implementation files: `src/adapters/auth/gmail-oauth.ts`, `src/adapters/inbox/re
 
 Automated tests mock the Gmail HTTP boundary and OAuth library boundary; callback tests use local loopback only. CI needs no Google credentials, browser login or external API access. Existing offline tests are preserved.
 
-The user completed local read-only OAuth and reported **two candidates fetched**. Both initially returned REVIEW because `To: Undisclosed recipients:;` was rejected. One supplied original email was replayed offline after the correction and returned **APPROVE with a non-executable approval-reply plan**. This is not a live approval, and the second candidate has not been replayed. Rerun both locally after updating.
+The user completed local read-only OAuth and reported **two candidates fetched**. Both initially returned REVIEW because `To: Undisclosed recipients:;` was rejected. One supplied original email was replayed offline after the correction and returned **APPROVE with a non-executable approval-reply plan**. The user subsequently supplied successful local output for both real candidates: TEST 001 returned APPROVE with a non-executable plan; TEST 002 returned REJECT/withhold-approval. Both MIME and Groups parsing succeeded. No email was sent in those runs.
 
 The observed format is multipart/mixed: a multipart/alternative notification wrapper plus one inline message/rfc822 original. Gmail's displayed forwarded divider is not present in the raw wrapper. The wrapper's plain/HTML texts differ in predictable link/footer wording; only this explicit template is supported. The original's own plain/HTML content must still agree. Ordinary attachment contents remain excluded, and multiple/nested inline originals fail closed. The regression fixture uses synthetic identities, message IDs and update content; private delivery headers were not committed.
 
@@ -112,12 +114,12 @@ After the local run, record privately for each of the two messages:
 | Check | Actual result |
 | --- | --- |
 | Candidate count | User reported two fetched |
-| MIME parsing and Groups parsing | Supplied first original passes offline replay after correction; rerun both locally |
-| Original author/subject correct | Extracted from supplied first original; user confirmation on rerun |
-| Decision and non-executable plan | Supplied original: APPROVE, non-executable approval-reply plan |
+| MIME parsing and Groups parsing | User-supplied live output shows both candidates parsed successfully |
+| Original author/subject correct | Both original subjects/authors extracted in user-supplied live output |
+| Decision and non-executable plan | TEST 001: APPROVE/approval-reply; TEST 002: REJECT/withhold-approval; neither executed |
 | From / Reply-To / Message-ID / References / In-Reply-To / threadId | Pending local inspection |
 | Group recipient, delimiter and original-body structure | Pending local inspection |
 | Plain/HTML agreement and approval wording | Pending local inspection |
 | Authentication-Results, SPF, DKIM and ARC headers | Pending local inspection; not verified |
 
-Read-only audit: application Gmail API calls are only GET list and GET RAW. OAuth token exchange/refresh uses Google's authentication endpoints, not mailbox mutation. There is no send, drafts, modify, delete or Groups mutation API, no executor, no background loop, and no live Jev dependency. The installed auth library handles credentials and contains general authenticated HTTP utilities, but those are not exposed as Gmail mutation capabilities by this app. Before any future sending milestone, actual format/approval semantics, sender authentication, threading, authorization and durable deduplication/recovery still need separate validation. This milestone stops at printed plans.
+Milestone 4A read-only audit: this command's Gmail API calls are only GET list and GET RAW. OAuth token exchange/refresh uses Google's authentication endpoints, not mailbox mutation. This command has no send, drafts, modify, delete or Groups mutation capability, no executor, no background loop, and no live Jev dependency. The separate Milestone 4B command adds only a controlled reply send. The installed auth library handles credentials and contains general authenticated HTTP utilities, but those are not exposed as Gmail mutation capabilities by this app. Before any future sending milestone, actual format/approval semantics, sender authentication, threading, authorization and durable deduplication/recovery still need separate validation. This milestone stops at printed plans.

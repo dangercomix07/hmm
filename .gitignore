@@ -12,3 +12,7 @@ token.json
 .secrets/
 *.oauth.json
 config/google-groups.local.yaml
+
+# Controlled send test settings and execution reservations
+config/gmail-sending.local.yaml
+.hmm/

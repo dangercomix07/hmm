@@ -33,7 +33,7 @@ npm run cli -- check fixtures/technical-update.txt
 
 The first two print `REJECT`; the technical update prints `APPROVE`.
 
-The CLI always performs a dry run, even when `dry_run: false` is in the configuration. It never connects approval, email, or external storage adapters.
+The `check` and `check-email` commands always perform a dry run, even when `dry_run: false` is in the configuration. `gmail-check` remains read-only. The separate `approve-test` command can send one reply only with test sending enabled and exact interactive confirmation (see Milestone 4B below).
 
 Exit codes are **0** for `APPROVE`, **1** for `REJECT`, and **2** for `REVIEW`, invalid configuration, or input errors. A rejection exits nonzero on purpose so scripts can use the decision.
 
@@ -183,7 +183,7 @@ Use `--config` for rules and `--email-config config/google-groups.example.yaml` 
 
 Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Ordinary attachments contribute metadata only; their contents do not go to the evaluator. The explicitly supported Google multipart notification can contain one inline `message/rfc822` original, whose validated author/subject/body become the item. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
 
-**No real Google account is connected. No message can currently be approved through Google.** The reply plan is marked `UNVERIFIED`; programmatic approval-by-reply still needs a disposable live test in a later milestone.
+This offline harness does not connect to Google. Its reply plan remains non-executable and marked `UNVERIFIED`. Separate live read-only and controlled-send commands are described below.
 
 See [integration boundaries, official sources, and limitations](docs/gmail-google-groups-integration.md), [the fixture index](fixtures/google-groups/README.md), and [the future manual test plan](docs/google-groups-manual-test.md).
 
@@ -192,6 +192,12 @@ See [integration boundaries, official sources, and limitations](docs/gmail-googl
 `npm run cli -- gmail-check --inspect` reads a locally authorized Gmail account and prints decisions and non-executable plans. It requires a Desktop OAuth client and only `gmail.readonly`; the fake evaluator remains mandatory. No mail is sent, approved or modified. Existing `check-email` stays entirely offline.
 
 Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.md). No credentials are needed for development or automated tests. A user-supplied real notification has been replayed successfully with explicit inline RFC822 support. Rerunning both live candidates locally remains necessary; see the setup guide for observed configuration values.
+
+## Controlled approval reply (Milestone 4B)
+
+`npm run cli -- approve-test <gmail-message-id>` re-fetches one explicitly selected notification, parses and evaluates it again, and offers a send only for APPROVE and the configured disposable test group. It displays the exact reply and requires typing `APPROVE TEST` in an interactive terminal. A separate read+send OAuth grant and disabled-by-default sending config are required. Local reservations prevent repeated test sends from this checkout; there are no automatic retries.
+
+Follow the [controlled reply setup and manual verification guide](docs/gmail-approval-test.md). Gmail send success does not prove Google Groups published the post. No live API send has been performed in the cloud.
 
 ## Progress and storage
 

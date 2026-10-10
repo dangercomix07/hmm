@@ -1,0 +1,9 @@
+# Copy to gmail-sending.local.yaml. Enable only for the disposable test group.
+# No credentials belong here. Verify both addresses against the notification.
+sending:
+  enabled: false
+  test_only: true
+  allowed_groups:
+    - hmm-testing@googlegroups.com
+  allowed_reply_addresses:
+    - hmm-testing+msgappr@googlegroups.com
