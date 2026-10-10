@@ -10,10 +10,12 @@ import { GmailReplyExecutor, gmailAccountEmail, buildReplyRfc, requireSameGmailA
 export async function approveTest(args: string[]): Promise<void> {
   validateSelectedId(args[0] ?? "");
   const options = new Map<string, string>();
-  for (let index = 1; index < args.length; index += 2) {
+  let reauthorize = false;
+  for (let index = 1; index < args.length; index++) {
     const key = args[index]!;
+    if (key === "--reauthorize" && !reauthorize) { reauthorize = true; continue; }
     if (!["--config", "--email-config", "--sending-config"].includes(key) || options.has(key) || !args[index + 1] || args[index + 1]!.startsWith("--")) throw new Error("Invalid approve-test option; no batch or confirmation bypass is supported");
-    options.set(key, args[index + 1]!);
+    options.set(key, args[++index]!);
   }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("approve-test requires an interactive terminal; piped confirmation is not accepted");
   const config = await loadConfig(options.get("--config") ?? "config/example.yaml");
@@ -21,11 +23,11 @@ export async function approveTest(args: string[]): Promise<void> {
   const sending = await loadTestSendingConfig(options.get("--sending-config") ?? "config/gmail-sending.local.yaml");
   if (!sending.enabled || !sending.allowed_groups.some(group => group.toLowerCase() === groups.group_address.toLowerCase())) throw new Error("Enable the dedicated test sending config for the explicitly allowed test group first");
   if (config.evaluator.provider !== "fake") throw new Error("approve-test requires provider: fake");
-  const readAuth = await authenticateGmail(".secrets/gmail-desktop.json", ".tokens/gmail.json");
+  const readAuth = await authenticateGmail(".secrets/gmail-desktop.json", ".tokens/gmail.json", undefined, reauthorize ? "read-send" : "readonly", reauthorize);
   const prepared = await prepareTestApproval(args[0]!, new RealGmailClient(readAuth.accessToken), readAuth.account, config, groups, sending);
   const sender = await gmailAccountEmail(readAuth.accessToken);
-  // Dedicated Desktop client/token keeps gmail-check's read-only grant separate.
-  const sendAuth = await authenticateGmail(".secrets/gmail-send-desktop.json", ".tokens/gmail-send.json", undefined, "read-send");
+  // Both commands share the client and token; read commands still have no send path.
+  const sendAuth = reauthorize ? readAuth : await authenticateGmail(".secrets/gmail-desktop.json", ".tokens/gmail.json", undefined, "read-send");
   const sendAccount = await gmailAccountEmail(sendAuth.accessToken);
   requireSameGmailAccount(sender, sendAccount);
   buildReplyRfc(prepared.plan, sender); // All RFC validation happens before asking the user.

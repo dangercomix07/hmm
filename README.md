@@ -195,7 +195,7 @@ Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.m
 
 ## Controlled approval reply (Milestone 4B)
 
-`npm run cli -- approve-test <gmail-message-id>` re-fetches one explicitly selected notification, parses and evaluates it again, and offers a send only for APPROVE and the configured disposable test group. It displays the exact reply and requires typing `APPROVE TEST` in an interactive terminal. A separate read+send OAuth grant and disabled-by-default sending config are required. Local reservations prevent repeated test sends from this checkout; there are no automatic retries.
+`npm run cli -- approve-test <gmail-message-id>` re-fetches one explicitly selected notification, parses and evaluates it again, and offers a send only for APPROVE and the configured disposable test group. It displays the exact reply and requires typing `APPROVE TEST` in an interactive terminal. Reuse the existing client JSON and run with `--reauthorize` once to grant read+send permission. The sending config remains disabled by default. Local reservations prevent repeated test sends from this checkout; there are no automatic retries.
 
 Follow the [controlled reply setup and manual verification guide](docs/gmail-approval-test.md). Gmail send success does not prove Google Groups published the post. No live API send has been performed in the cloud.
 

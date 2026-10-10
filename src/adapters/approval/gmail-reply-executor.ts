@@ -68,7 +68,7 @@ export async function gmailAccountEmail(token: AccessTokenProvider, fetcher: typ
 
 export function requireSameGmailAccount(reader: string, sender: string): void {
   bareAddress(reader); bareAddress(sender);
-  if (reader.toLowerCase() !== sender.toLowerCase()) throw new Error("Read and send OAuth accounts differ. No send attempted. Reauthorize the send client as the same moderator.");
+  if (reader.toLowerCase() !== sender.toLowerCase()) throw new Error("Read and send OAuth accounts differ. No send attempted. Reauthorize the existing client as the same moderator.");
 }
 
 /** Development lock/record, not a durable production ledger. Never automatically cleared. */

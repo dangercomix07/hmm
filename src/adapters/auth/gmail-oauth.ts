@@ -11,10 +11,11 @@ export type GmailAuthMode = "readonly" | "read-send";
 class ScopeError extends Error {}
 export function validateScopes(scopes: string[], mode: GmailAuthMode = "readonly"): void {
   const expected = mode === "read-send" ? [GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE] : [GMAIL_READONLY_SCOPE];
-  if (scopes.length !== expected.length || !expected.every(scope => scopes.includes(scope))) {
+  const allowedReadSend = mode === "readonly" && scopes.length === 2 && scopes.includes(GMAIL_READONLY_SCOPE) && scopes.includes(GMAIL_SEND_SCOPE);
+  if (!allowedReadSend && (scopes.length !== expected.length || !expected.every(scope => scopes.includes(scope)))) {
     throw new ScopeError(mode === "read-send"
-      ? "Gmail send authorization requires exactly gmail.readonly and gmail.send. Remove the send token file (.tokens/gmail-send.json by default) and reauthorize with the dedicated send Desktop client. No send attempted."
-      : "Authorize only Gmail read-only access using a dedicated Desktop OAuth client.");
+      ? "Gmail send authorization requires exactly gmail.readonly and gmail.send. Run approve-test with --reauthorize to grant the added permission using your existing Desktop client. No send attempted."
+      : "Gmail read-only commands require gmail.readonly; only the optional gmail.send scope is also accepted.");
   }
 }
 export async function saveRefreshToken(path: string, clientId: string, refreshToken: string): Promise<void> {
@@ -73,7 +74,7 @@ export async function browserCode(buildUrl: (redirect: string, state: string) =>
   });
 }
 
-export async function authenticateGmail(credentialsPath: string, tokenPath: string, authorize: typeof browserCode = browserCode, mode: GmailAuthMode = "readonly"): Promise<{ account: string; accessToken: () => Promise<string> }> {
+export async function authenticateGmail(credentialsPath: string, tokenPath: string, authorize: typeof browserCode = browserCode, mode: GmailAuthMode = "readonly", reauthorize = false): Promise<{ account: string; accessToken: () => Promise<string> }> {
   try {
     const data = JSON.parse(await readFile(credentialsPath, "utf8"));
     const keys = data.installed;
@@ -83,7 +84,7 @@ export async function authenticateGmail(credentialsPath: string, tokenPath: stri
     client.transporter.interceptors.request.add({ resolved: async request => {
       request.retry = false; request.retryConfig = { retry: 0 }; request.timeout = 30_000; return request;
     } });
-    let refreshToken = await loadRefreshToken(tokenPath, keys.client_id);
+    let refreshToken = reauthorize ? undefined : await loadRefreshToken(tokenPath, keys.client_id);
     if (refreshToken) client.setCredentials({ refresh_token: refreshToken });
     else {
       const pkce = await client.generateCodeVerifierAsync();
@@ -111,7 +112,7 @@ export async function authenticateGmail(credentialsPath: string, tokenPath: stri
           verifiedToken = value;
         }
         return value;
-      } catch (error) { if (error instanceof ScopeError && mode === "read-send") throw error; throw new Error("Gmail authorization failed. Use a dedicated read-only Desktop client; remove the local token and authorize again if expired or revoked."); }
+      } catch (error) { if (error instanceof ScopeError && mode === "read-send") throw error; throw new Error("Gmail authorization failed. Use your existing Desktop client; reauthorize if the token is expired or revoked."); }
     };
     await accessToken();
     await saveRefreshToken(tokenPath, keys.client_id, refreshToken);
@@ -119,7 +120,7 @@ export async function authenticateGmail(credentialsPath: string, tokenPath: stri
     return { account: `oauth-grant:${createHash("sha256").update(refreshToken).digest("hex")}`, accessToken };
   } catch (error) {
     if (error instanceof ScopeError && mode === "read-send") throw error;
-    if (mode === "read-send") throw new Error("Cannot initialize Gmail send OAuth. Check the dedicated send Desktop credentials, test-user access and network. Remove the send token (.tokens/gmail-send.json by default) and reauthorize if expired or revoked. No credentials were logged; no send attempted.");
+    if (mode === "read-send") throw new Error("Cannot initialize Gmail send OAuth. Check the existing Desktop credentials, test-user access and network. Run approve-test with --reauthorize if the token is expired or revoked. No credentials were logged; no send attempted.");
     throw new Error("Cannot initialize Gmail OAuth. Check the Desktop credentials file, test-user access and network. For expired/revoked/mismatched tokens, remove .tokens/gmail.json and authorize again. No credentials were logged.");
   }
 }

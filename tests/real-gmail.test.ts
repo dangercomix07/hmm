@@ -84,7 +84,7 @@ test("public real Gmail client exposes no send, draft, modify or generic request
 });
 test("scope validation refuses missing or additional privileges", () => {
   validateScopes([GMAIL_READONLY_SCOPE]);
-  for (const scopes of [[], ["https://mail.google.com/"], [GMAIL_READONLY_SCOPE, "https://www.googleapis.com/auth/gmail.send"]]) assert.throws(() => validateScopes(scopes), /read-only/);
+  for (const scopes of [[], ["https://mail.google.com/"], [GMAIL_READONLY_SCOPE, "https://www.googleapis.com/auth/gmail.modify"]]) assert.throws(() => validateScopes(scopes), /read-only/);
 });
 test("refresh token persistence is client-bound and preserves the token without storing access tokens", async () => {
   const directory = await mkdtemp(join(tmpdir(), "hmm-oauth-")); const path = join(directory, "tokens", "gmail.json");
@@ -215,7 +215,7 @@ test("send OAuth rejects an insufficient cached read-only grant with explicit re
     await assert.rejects(authenticateGmail(credentials, token, async () => assert.fail("Do not silently reauthorize"), "read-send"), /requires exactly gmail.readonly and gmail.send.*reauthorize/);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
-test("separate send OAuth requests and accepts only read-only plus send scopes", async t => {
+test("send OAuth requests and accepts only read-only plus send scopes", async t => {
   validateScopes([GMAIL_SEND_SCOPE, GMAIL_READONLY_SCOPE], "read-send");
   assert.throws(() => validateScopes([GMAIL_SEND_SCOPE], "read-send"));
   assert.throws(() => validateScopes([GMAIL_SEND_SCOPE, GMAIL_READONLY_SCOPE, "https://www.googleapis.com/auth/gmail.modify"], "read-send"));
@@ -235,5 +235,44 @@ test("separate send OAuth requests and accepts only read-only plus send scopes",
     }, "read-send");
     assert.equal(await auth.accessToken(), "access-only");
     assert.equal(await loadRefreshToken(token, clientId), "refresh-only");
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("read-only commands reuse the shared upgraded token without requesting consent again", async t => {
+  validateScopes([GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE]);
+  const directory = await mkdtemp(join(tmpdir(), "hmm-shared-token-"));
+  const credentials = join(directory, "client.json"), token = join(directory, "token.json");
+  const clientId = "shared.apps.googleusercontent.com";
+  try {
+    await writeFile(credentials, JSON.stringify({ installed: { client_id: clientId, client_secret: "test-secret" } }));
+    await saveRefreshToken(token, clientId, "upgraded-refresh");
+    t.mock.method(OAuth2Client.prototype, "getAccessToken", async () => ({ token: "upgraded-access" }));
+    t.mock.method(OAuth2Client.prototype, "getTokenInfo", async () => ({ scopes: [GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE], aud: clientId }));
+    const auth = await authenticateGmail(credentials, token, async () => assert.fail("No browser needed"));
+    assert.equal(await auth.accessToken(), "upgraded-access");
+    assert.equal(await loadRefreshToken(token, clientId), "upgraded-refresh");
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+test("explicit reauthorization upgrades the existing client/token and preserves old token on failed consent", async t => {
+  const directory = await mkdtemp(join(tmpdir(), "hmm-upgrade-token-"));
+  const credentials = join(directory, "client.json"), token = join(directory, "token.json");
+  const clientId = "shared.apps.googleusercontent.com";
+  try {
+    await writeFile(credentials, JSON.stringify({ installed: { client_id: clientId, client_secret: "test-secret" } }));
+    await saveRefreshToken(token, clientId, "old-readonly-refresh");
+    await assert.rejects(authenticateGmail(credentials, token, async () => { throw new Error("denied"); }, "read-send", true), /Cannot initialize/);
+    assert.equal(await loadRefreshToken(token, clientId), "old-readonly-refresh");
+    t.mock.method(OAuth2Client.prototype, "getToken", async () => ({ tokens: { access_token: "new-access", refresh_token: "new-refresh" } }));
+    t.mock.method(OAuth2Client.prototype, "getAccessToken", async () => ({ token: "new-access" }));
+    t.mock.method(OAuth2Client.prototype, "getTokenInfo", async () => ({ scopes: [GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE], aud: clientId }));
+    const auth = await authenticateGmail(credentials, token, async build => {
+      const redirect = "http://127.0.0.1:1234/oauth2callback";
+      const url = new URL(build(redirect, "test-state"));
+      assert.equal(url.searchParams.get("client_id"), clientId);
+      assert.deepEqual(url.searchParams.get("scope")!.split(" "), [GMAIL_READONLY_SCOPE, GMAIL_SEND_SCOPE]);
+      return { code: "upgrade-code", redirect };
+    }, "read-send", true);
+    assert.equal(await auth.accessToken(), "new-access");
+    assert.equal(await loadRefreshToken(token, clientId), "new-refresh");
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

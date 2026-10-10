@@ -4,22 +4,20 @@
 
 The user reports that a normal manual Gmail reply already approved a disposable post in `hmm-testing`. This establishes the manual behavior for that experiment, not a verified Gmail API outcome. No live send was attempted in Codex cloud. The local API test below remains to be performed and checked by the user.
 
-## Authorization: keep read and send grants separate
+## Authorization: reuse the existing client and token
 
-The read-only command still requires only:
+Both commands use `.secrets/gmail-desktop.json` and `.tokens/gmail.json`. **No new client or JSON download is required** when adding a scope in Google Cloud Data Access; the existing client ID and secret stay the same.
 
-- `https://www.googleapis.com/auth/gmail.readonly`
+The initial `gmail-check` login requests `https://www.googleapis.com/auth/gmail.readonly`. To authorize the controlled send, run `approve-test <id> --reauthorize` and consent to exactly:
 
-The controlled send command also needs a **separate Desktop OAuth client/token** with exactly:
+- `https://www.googleapis.com/auth/gmail.readonly` — existing reads/search/RAW and mailbox identity checks.
+- `https://www.googleapis.com/auth/gmail.send` — submit the selected reply.
 
-- `https://www.googleapis.com/auth/gmail.readonly` — verify the signed-in mailbox using Gmail's read-only profile endpoint; the existing read client handles search/RAW reads.
-- `https://www.googleapis.com/auth/gmail.send` — submit the one reply.
+Adding the scope in Cloud Console alone does not upgrade an existing token. `--reauthorize` explicitly opens browser consent using the same client, and replaces the saved token only after the new grant's scopes and client identity have been checked. Failed/denied consent leaves the existing token file intact. It also works for an expired/revoked token, without manually deleting it.
 
-No `gmail.modify`, `gmail.compose`, full-mailbox, label, deletion or draft permissions are requested. Gmail's send scope itself is not group-specific; the command imposes the explicit test-group and recipient allowlists.
+Afterward, omit `--reauthorize` on normal runs. `gmail-check` accepts the upgraded token but still calls only read endpoints; the token itself now has sending permission. Unrelated scopes such as `gmail.modify` remain rejected. All controlled-send group/recipient/confirmation/duplicate guards still apply. No second client, `gmail-send-desktop.json` or `gmail-send.json` is used.
 
-The command preserves `.secrets/gmail-desktop.json` and `.tokens/gmail.json` for reading. It uses `.secrets/gmail-send-desktop.json` and `.tokens/gmail-send.json` for sending. Using a second client avoids upgrading the read-only client's grant. Both account profiles must identify the same moderator email before confirmation is offered. The existing read grant is also used to build the same stable ActionId as `gmail-check`.
-
-First-time send authorization requires browser consent. Reusing an insufficient read-only token as the send token fails explicitly; the command never silently treats it as send-capable. To reauthorize a revoked/expired/insufficient send grant, remove only `.tokens/gmail-send.json` and run again. Keep the read-only token. If the accounts differ, reauthorize the send client as the account used for reading.
+Reauthorization can change the grant-derived ActionId. The local execution record also identifies the selected notification by verified mailbox and Gmail message ID, so that change does not bypass duplicate protection in this checkout.
 
 ## Local setup in PowerShell
 
@@ -38,7 +36,7 @@ If you already have that branch locally, use `git switch milestone4b-controlled-
 
 1. In [Google Cloud Console](https://console.cloud.google.com/), select the test project already used for Milestone 4A. Gmail API must be enabled.
 2. In **Google Auth Platform → Data Access**, add `gmail.send` alongside `gmail.readonly`. Keep the app in Testing and your moderator account in the test-user list. Console labels may vary.
-3. Under **Clients**, create a **new Desktop app** client, named for example `hmm controlled send`. Download its JSON to `.secrets/gmail-send-desktop.json`. Do not overwrite the read-only client JSON. Do not paste either file into chat or commit it. If your organization blocks these scopes, resolve it with its administrator.
+3. Keep your existing `.secrets/gmail-desktop.json`; do not download it again. You will grant the added permission in the browser using `--reauthorize`. If your organization blocks these scopes, resolve it with its administrator.
 4. Create the local sending config (do not overwrite one that already exists):
 
 ```powershell
@@ -72,12 +70,12 @@ npm run cli -- gmail-check
 4. Run the controlled command, replacing the placeholder with that exact ID:
 
 ```powershell
-npm run cli -- approve-test YOUR_NEW_GMAIL_MESSAGE_ID
+npm run cli -- approve-test YOUR_NEW_GMAIL_MESSAGE_ID --reauthorize
 ```
 
 The command fetches only that message and runs the existing MIME parser, Groups parser, fake evaluator and policy again. Only APPROVE plus a valid reply plan can proceed. REJECT, REVIEW, wrong group, unlisted recipient, missing metadata or a fetched ID mismatch stops the command.
 
-On first use, authorize the separate send client in your browser with the **same moderator account**. OAuth consent does not send mail. The command checks the account identity and exact granted scopes, then displays the group, original author/subject, From, To, reply subject, In-Reply-To, References, selected Gmail message ID, thread, ActionId and body.
+For this first permission upgrade, authorize your existing client in the browser with the **same moderator account**. Omit `--reauthorize` after successful authorization. OAuth consent does not send mail. The command checks the account identity and exact granted scopes, then displays the group, original author/subject, From, To, reply subject, In-Reply-To, References, selected Gmail message ID, thread, ActionId and body.
 
 5. Inspect every field. The reply body is `Approve.` for this experiment; no claim is made that this word is necessary for Google Groups. The parser's existing outer Reply-To/From choice remains unchanged, but the chosen address must match the extra send-recipient allowlist.
 6. Only when the displayed plan matches the fresh disposable test, type exactly:
@@ -126,8 +124,8 @@ This is not exactly-once delivery or a production ledger. Records can be lost/co
 
 Added: `gmail-reply-executor.ts`, `prepare-test-approval.ts`, `test-sending-config.ts`, `ports/email-reply-executor.ts`, `cli/approve-test.ts`, the disabled local sending-config example, and offline actuator tests. Updated: OAuth scope mode/validation, CLI routing/help, ignored paths and documentation. No evaluator, policy, GmailClient interface, GmailTransport, parsing rules or ActionId algorithm changed. No new dependencies.
 
-Validation: **152 tests passed** (133 existing plus 19 added), `npm run typecheck` passed, and credential/token/record/config ignore rules were checked.
+Validation: **154 tests passed** (133 existing plus 21 added), `npm run typecheck` passed, and credential/token/record/config ignore rules were checked.
 
-Offline tests cover fresh approval/refusal paths, explicit group/recipient guards, message-ID and metadata failures, exact confirmation/cancellation, noninteractive CLI rejection, RFC/Unicode/threading, scope expansion and insufficient grants, account mismatch, one POST only, 4xx/5xx, unknown outcomes, record failures, cross-run and concurrent duplicates. All HTTP/OAuth send boundaries are mocked; CI needs no Google credentials or live API access.
+Offline tests cover fresh approval/refusal paths, explicit group/recipient guards, message-ID and metadata failures, exact confirmation/cancellation, noninteractive CLI rejection, RFC/Unicode/threading, scope expansion, shared-token reuse, explicit reauthorization and insufficient grants, account mismatch, one POST only, 4xx/5xx, unknown outcomes, record failures, cross-run and concurrent duplicates. All HTTP/OAuth send boundaries are mocked; CI needs no Google credentials or live API access.
 
 No scheduler, automatic polling, approve-all, background service, rejection email, production approval workflow, database, Groups scraping or unattended mode was added. The cloud performed **zero live sends**. Milestone 4B's live outcome remains pending the user's fresh-post test above.

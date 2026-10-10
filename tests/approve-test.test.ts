@@ -175,6 +175,10 @@ test("profile lookup uses a read-only endpoint and rejects invalid account ident
   await assert.rejects(gmailAccountEmail(async () => "token", (async () => new Response('{"emailAddress":"bad"}')) as typeof fetch), /Cannot verify/);
 });
 test("CLI refuses missing/batch/latest IDs, confirmation bypasses and piped input before any OAuth", () => {
+  for (const args of [["abc123", "--reauthorize"], ["abc123", "--config", "config/example.yaml", "--reauthorize"]]) {
+    const result = spawnSync(process.execPath, ["dist/src/cli/index.js", "approve-test", ...args], { input: "APPROVE TEST\n", encoding: "utf8" });
+    assert.equal(result.status, 2); assert.match(result.stderr, /requires an interactive terminal/);
+  }
   for (const args of [[], ["latest"], ["all"], ["abc123", "def456"], ["abc123", "--yes"], ["abc123"]]) {
     const result = spawnSync(process.execPath, ["dist/src/cli/index.js", "approve-test", ...args], { input: "APPROVE TEST\n", encoding: "utf8" });
     assert.equal(result.status, 2); assert.doesNotMatch(result.stdout, /accounts.google.com|Reply sent successfully/);
