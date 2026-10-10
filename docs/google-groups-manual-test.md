@@ -2,6 +2,8 @@
 
 Approval-by-reply is unverified. This is a plan for after real Gmail and reply adapters are implemented, not a runnable test today. It must never run in CI.
 
+The current offline harness can construct a non-executable reply plan from synthetic MIME fixtures. Its proposed body is not a verified approval command. See [the offline integration notes](gmail-google-groups-integration.md) for what has been established without Google access.
+
 1. Use a disposable test group and a moderator account authorized for that group.
 2. Submit one synthetic message with a unique subject and fake content.
 3. Confirm that this exact message enters the moderation queue.

@@ -1,0 +1,7 @@
+# Synthetic offline fixture settings. Header matches are not sender authentication.
+group_address: team@example.com
+notification_senders:
+  - team+msgappr@example.com
+subject_contains: Message Pending
+# Candidate discovery only; every result must pass MIME and source validation.
+gmail_query: 'from:team+msgappr@example.com subject:"Message Pending"'
