@@ -26,7 +26,7 @@ export class GmailTransport {
       const page = await this.client.listMessages({ q: query, maxResults: pageSize, ...(pageToken !== undefined ? { pageToken } : {}) });
       for (const reference of page.messages ?? []) {
         if (!reference.id || ids.has(reference.id)) throw new Error("Missing or duplicate Gmail message ID");
-        if (results.length >= 1000) throw new Error("Offline discovery batch exceeds 1000 messages");
+        if (results.length >= 1000) throw new Error("Gmail discovery batch exceeds 1000 messages");
         ids.add(reference.id);
         const message = await this.client.getMessage(reference.id, { format: "raw" });
         if (message.id !== reference.id || (reference.threadId !== undefined && message.threadId !== reference.threadId)) throw new Error("Gmail get response does not match list identity");

@@ -17,6 +17,7 @@
     "cli": "npm run build --silent && node dist/src/cli/index.js"
   },
   "dependencies": {
+    "google-auth-library": "^11.2.0",
     "html-to-text": "^10.0.1",
     "postal-mime": "^4.0.5",
     "yaml": "^2.8.1"

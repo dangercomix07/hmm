@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { gmailCheck } from "./gmail-check.js";
 import { readFile } from "node:fs/promises";
 import { loadConfig } from "../config/load-config.js";
 import { moderate } from "../core/moderate.js";
@@ -11,8 +12,9 @@ import { loadGoogleGroupsConfig } from "../adapters/email/google-groups-config.j
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  if (args[0] === "gmail-check") { process.exitCode = await gmailCheck(args.slice(1)); return; }
   if (args.length === 1 && ["--help", "-h"].includes(args[0]!)) {
-    console.log("Usage: hmm check <file> [--config <yaml-file>]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\nDry-run only; check-email is offline and requires provider: fake. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
+    console.log("Usage: hmm check <file> [--config <yaml-file>]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\n       hmm gmail-check [--inspect] [--email-config <yaml-file>] [--config <yaml-file>] [--credentials <json-file>] [--token <json-file>]\nDry-run only; check-email is offline and requires provider: fake. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
     return;
   }
   if (!["check", "check-email"].includes(args[0] ?? "") || !args[1] || args.length % 2 !== 0) {

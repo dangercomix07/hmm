@@ -187,6 +187,12 @@ Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, qu
 
 See [integration boundaries, official sources, and limitations](docs/gmail-google-groups-integration.md), [the fixture index](fixtures/google-groups/README.md), and [the future manual test plan](docs/google-groups-manual-test.md).
 
+## Live Gmail read-only checks (Milestone 4A)
+
+`npm run cli -- gmail-check --inspect` reads a locally authorized Gmail account and prints decisions and non-executable plans. It requires a Desktop OAuth client and only `gmail.readonly`; the fake evaluator remains mandatory. No mail is sent, approved or modified. Existing `check-email` stays entirely offline.
+
+Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.md). No credentials are needed for development or automated tests. The real test-group notifications still need local validation; no real notification format is claimed to work yet.
+
 ## Progress and storage
 
 The evaluator output may include `completed`, `inProgress`, `blockers`, `nextActions`, and `concerns` arrays. The core validates these fields when present. Moderation works without them. `MemoryStore` retains results for the lifetime of the process; it is not a database. Automatic progress extraction, Sheets storage, and summaries are later work.

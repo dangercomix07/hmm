@@ -4,3 +4,11 @@ dist/
 .env.*
 *.log
 coverage/
+
+# Local Google OAuth credentials, tokens and account settings
+credentials.json
+token.json
+.tokens/
+.secrets/
+*.oauth.json
+config/google-groups.local.yaml
