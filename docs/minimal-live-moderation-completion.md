@@ -19,7 +19,7 @@ REVIEW, source changes, all ledger states, uncertain sends, allow-lists, no pipe
 confirmation/force/provider override, and competing sessions. Gmail reads/sends
 are mocked; existing offline network guard remains enabled.
 
-## Live acceptance: pending user execution
+## Initial acceptance status (superseded by observed live run below)
 
 | Case | Offline observed result | New live observation |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ and precedes submission. Uncertain actions are never automatically retried.
 
 No scheduler, autonomous moderation, background polling, retry loop, rejection/
 review email, semantic AI call or deployment was added. Software implementation
-and offline validation are complete; live acceptance remains pending.
+and offline validation are complete; live acceptance was pending at implementation time; see the observed live run below.
 
 ## First local live run and notification compatibility correction
 
@@ -67,3 +67,34 @@ PASS lines now omit failure-oriented rule descriptions. Synthetic regression
 tests cover nested header isolation, outer failures and supervised cancellation.
 Validation after correction: 288 offline tests passed, typecheck and diff check
 passed. No live Google action was performed during the correction.
+
+
+## Observed supervised live acceptance
+
+After updating to 7d154da and explicitly enabling the test-only authentication
+exception locally, the user supplied a second CLI transcript and confirmed
+that LIVE A appeared in Google Groups.
+
+| Case | Observed local result | External action |
+| --- | --- | --- |
+| LIVE A | APPROVE; exact confirmation entered; SENT with recordSaved true | One approval reply; user manually confirmed publication |
+| LIVE B | REJECT; missing next steps | No send |
+| LIVE C | REVIEW; ambiguous quotation | No send |
+| LIVE D | REJECT; eleven-line code block | No send |
+
+The same run also discovered the older HMM TEST 003 notification. It offered
+confirmation, but the executor refused reservation with “Execution record exists
+or cannot be reserved; reconcile manually. No send.” No second reply was sent.
+This is consistent with the legacy record interlock: the initial lookup uses
+the current ActionId journal, while reservation also checks legacy source-key
+records. Existing notifications in Gmail do not establish current pending status.
+The late blocking check preserved duplicate protection but the redundant prompt
+is a remaining UX limitation. The error stopped the session before the remaining
+older candidates were processed. Do not delete the ledger to bypass this block.
+
+The new LIVE A record is SENT locally; user-reported publication is documented
+here, not programmatically reconciled to CONFIRMED. A rerun showing LIVE A skipped
+has not yet been supplied. No private headers, message identifiers or credentials
+are included in this record. No code changed for this documentation update;
+latest code validation remains 288 passing offline tests and successful typecheck.
+The live actions were performed by the user on their PC, not from the cloud session.
