@@ -1,3 +1,4 @@
+import { observeContent } from "./content-observations.js";
 import PostalMime, { addressParser, decodeWords } from "postal-mime";
 import { convert } from "html-to-text";
 import type { EmailParser, Mailbox, ParsedEmail, RawEmail } from "./types.js";
@@ -106,6 +107,10 @@ export class MimeEmailParser implements EmailParser {
     const replyTo = mailboxes(headers["reply-to"]?.[0]);
     if (replyTo.length > 1) throw new Error("Ambiguous Reply-To");
     const result: ParsedEmail = {
+      contentObservations: observeContent(parsed.html, parsed.attachments.filter(a => a.mimeType.toLowerCase().startsWith("image/")).map(a => ({
+        filename: a.filename, mimeType: a.mimeType.toLowerCase(), disposition: a.disposition?.toLowerCase() ?? null,
+        ...(a.contentId ? { contentId: a.contentId } : {}), size: typeof a.content === "string" ? Buffer.byteLength(a.content) : a.content.byteLength,
+      }))),
       id: raw.id, source: { ...raw.source }, headers, text: text || htmlText || "",
       to: mailboxes(headers.to?.[0], true), replyTo,
       attachments: parsed.attachments.map(attachment => ({

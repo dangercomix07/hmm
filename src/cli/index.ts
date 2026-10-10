@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   if (args[0] === "approve-test") { await approveTest(args.slice(1)); return; }
   if (args[0] === "gmail-check") { process.exitCode = await gmailCheck(args.slice(1)); return; }
   if (args.length === 1 && ["--help", "-h"].includes(args[0]!)) {
-    console.log("Usage: hmm check <file> [--config <yaml-file>] [--verbose]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\n       hmm gmail-check [--inspect] [--email-config <yaml-file>] [--config <yaml-file>] [--credentials <json-file>] [--token <json-file>]\n       hmm approve-test <gmail-message-id> [--reauthorize] [--sending-config <yaml-file>] [--email-config <yaml-file>] [--config <yaml-file>]\napprove-test can send ONE email after exact interactive confirmation. Other commands are dry-run only; check-email is offline and requires provider: fake. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
+    console.log("Usage: hmm check <file> [--config <yaml-file>] [--verbose]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\n       hmm gmail-check [--inspect] [--email-config <yaml-file>] [--config <yaml-file>] [--credentials <json-file>] [--token <json-file>]\n       hmm approve-test <gmail-message-id> [--reauthorize] [--sending-config <yaml-file>] [--email-config <yaml-file>] [--config <yaml-file>]\napprove-test can send ONE email after exact interactive confirmation. Other commands are dry-run only; check-email is offline and requires provider: fake or none. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
     return;
   }
   if (!["check", "check-email"].includes(args[0] ?? "") || !args[1] || args.length % 2 !== 0) {
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   }
   const config = await loadConfig(options.get("--config") ?? (args[0] === "check" ? "config/team-update.yaml" : "config/example.yaml"));
   if (args[0] === "check-email") {
-    if (config.evaluator.provider !== "fake") throw new Error("check-email is an offline harness; select provider: fake");
+    if (!["fake", "none"].includes(config.evaluator.provider)) throw new Error("check-email is an offline harness; select provider: fake or none");
     const emailConfig = await loadGoogleGroupsConfig(options.get("--email-config") ?? "config/google-groups.example.yaml");
     const result = await checkEmail(fileEmail(await readFile(args[1])), config, createEvaluator(config), new MimeEmailParser(), new GoogleGroupsParser(emailConfig));
     console.log(formatEmailCheck(result));

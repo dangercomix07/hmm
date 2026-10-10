@@ -181,7 +181,7 @@ Raw email means the message bytes received from the transport. Parsed email mean
 
 The good fixture returns `APPROVE` and a **non-executable** reply plan with the recipient, subject, threading metadata, and stable action ID. `vague.eml` returns `REJECT` with no approval reply. `ambiguous.eml` returns `REVIEW`. Missing critical reply metadata requires review even if the content passed.
 
-`check-email` is always offline and only accepts `provider: fake`. It cannot send email or write external storage, even if a supplied config sets `dry_run: false`. `check <text-file>` defaults to the deterministic team profile; optional Jev evaluation still requires an explicit configuration.
+`check-email` is always offline and accepts only `provider: fake` or `provider: none`. It cannot send email or write external storage, even if a supplied config sets `dry_run: false`. `check <text-file>` defaults to the deterministic team profile; optional Jev evaluation still requires an explicit configuration.
 
 Use `--config` for rules and `--email-config config/google-groups.example.yaml` for the group address, allowed notification senders, subject filter, and candidate search query. These are fixture settings, not universal Google addresses. Search matches and matching headers are not authentication.
 
@@ -262,3 +262,17 @@ The [20 synthetic examples](fixtures/team-updates/README.md) include useful, vag
 injection-containing updates. A vague but complete update can pass this structural profile.
 Require semantic review explicitly when your workflow needs a judgment about meaning.
 All Milestone 5A authentication, ledger and supervised-send safeguards remain in place.
+
+## WORK UPDATES 101 profile
+
+For the narrower six-rule policy, use:
+
+```powershell
+npm run cli -- check .\fixtures\ameya-test.txt --config config/work-updates-101.yaml
+```
+
+This profile allows an unheaded opening paragraph and requires a nonempty next-step section.
+It checks usable text, placeholder-only required content, code blocks of at most ten lines,
+quoted previous-thread history, and MIME inline-image attachment coverage. It does not judge
+writing quality or meaningful progress. The default team profile remains unchanged.
+See the [WORK UPDATES 101 guide](docs/work-updates-101.md) for matching rules and REVIEW cases.

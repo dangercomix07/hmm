@@ -1,12 +1,15 @@
+import { contentRule } from "./content-rules.js";
 import { parseSections, type SectionDefinition } from "./sections.js";
 import { sectionRule } from "./section-rules.js";
 import type { Item } from "../domain/item.js";
 import type { DeterministicRule } from "../domain/rule.js";
 import type { RuleResult } from "../domain/evaluation.js";
 
-export function evaluateDeterministicRules(item: Item, rules: DeterministicRule[], sections: SectionDefinition[] = [], unknownSections: "preserve" | "review" = "preserve"): RuleResult[] {
-  const parsed = parseSections(item.body, sections);
+export function evaluateDeterministicRules(item: Item, rules: DeterministicRule[], sections: SectionDefinition[] = [], unknownSections: "preserve" | "review" = "preserve", preamble: "allow" | "review" = "review"): RuleResult[] {
+  const parsed = parseSections(item.body, sections, preamble);
   return rules.map(rule => {
+    const content = contentRule(item, rule, parsed);
+    if (content) return content;
     const structured = sectionRule(rule, parsed, unknownSections);
     if (structured) return structured;
     const ruleId = rule.id;

@@ -1,3 +1,4 @@
+import type { ContentObservations } from "../../domain/content-observations.js";
 import type { Item } from "../../domain/item.js";
 
 /** Bytes and identity from a transport, without any Gmail API response objects. */
@@ -13,6 +14,7 @@ export interface AttachmentMetadata { filename: string | null; mimeType: string;
 
 /** Decoded text only: raw HTML and attachment contents never leave the MIME adapter. */
 export interface ParsedEmail {
+  contentObservations?: ContentObservations;
   id: string;
   threadId?: string;
   source: RawEmail["source"];

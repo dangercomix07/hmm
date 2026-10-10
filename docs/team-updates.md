@@ -161,7 +161,8 @@ Semantic feedback asks for review of the configured question; it does not manufa
 Prompt-injection text remains content and cannot change rules, configuration, feedback templates,
 recipients, group identity, ActionId, thread IDs or execution. No send adapter is attached to check.
 
-The Gmail/Groups test commands retain their existing configuration and fake-evaluator restrictions.
+Live Gmail commands retain their existing configuration and fake-evaluator restrictions. The offline
+check-email harness also accepts provider: none for deterministic MIME checks.
 Milestone 5A authentication, durable reservations, uncertainty, no-retry and exact confirmation
 boundaries are unchanged. This profile does not relax them or add automatic moderation.
 

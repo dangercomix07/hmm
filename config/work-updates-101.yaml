@@ -1,0 +1,25 @@
+# Only objective WORK UPDATES 101 checks. No Progress heading or semantic assessment.
+dry_run: true
+evaluator: {provider: none}
+preamble: allow
+sections:
+  - {name: Next steps, aliases: [Future work, Next actions, Plan, Up next]}
+  - {name: Progress, aliases: []}
+  - {name: Blockers, aliases: []}
+unknown_sections: preserve
+policy:
+  fail_required_rule: {action: reject}
+  uncertain_rule: {action: review}
+rules:
+  - {id: structure, type: deterministic, required: true, check: section_structure}
+  - id: usable-body
+    type: deterministic
+    required: true
+    check: usable_body
+    phrases: &placeholders [TBD, TODO, Will update later, Nothing yet, Same as before, No update]
+  - {id: next-present, type: deterministic, required: true, check: required_section, section: Next steps}
+  - {id: next-content, type: deterministic, required: true, check: nonempty_section, section: Next steps}
+  - {id: next-placeholder, type: deterministic, required: true, check: forbidden_placeholder, section: Next steps, phrases: *placeholders, mixed_action: ignore}
+  - {id: code-limit, type: deterministic, required: true, check: inline_code_limit, max_lines: 10}
+  - {id: thread-history, type: deterministic, required: true, check: no_quoted_history}
+  - {id: image-files, type: deterministic, required: true, check: inline_image_attachments}

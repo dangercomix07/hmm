@@ -36,7 +36,15 @@ export class GoogleGroupsParser implements ModerationParser {
     const body = forwarded.slice(separator.index + separator[0].length).trim();
     if (!body) throw new Error("Original body is missing");
     const moderationMessageId = email.source.type === "gmail" ? email.id : email.messageId;
+    // This legacy text-forward format cannot bind outer HTML/MIME parts to the member body.
+    const facts = email.contentObservations;
+    const ambiguousFacts = facts && (facts.images.length || facts.imageParts.length || facts.htmlQuote !== "none" || facts.htmlCodeLines.length || facts.htmlCodeAmbiguous)
+      ? { ...structuredClone(facts), mimeComplete: false,
+        htmlQuote: facts.htmlQuote === "none" ? "none" as const : "ambiguous" as const,
+        htmlCodeLines: [], htmlCodeAmbiguous: Boolean(facts.htmlCodeLines.length || facts.htmlCodeAmbiguous) }
+      : undefined;
     const item: Item = {
+      ...(ambiguousFacts ? { contentObservations: ambiguousFacts } : {}),
       id: moderationMessageId, author: { name: author.name, email: author.address }, subject, body,
       source: { type: "google-groups", messageId: moderationMessageId },
     };
@@ -68,7 +76,7 @@ export class GoogleGroupsParser implements ModerationParser {
     if (group.length !== 1) throw new Error("Original recipient does not identify the configured group");
     const moderationMessageId = email.source.type === "gmail" ? email.id : email.messageId!;
     const item: Item = { id: moderationMessageId, author: { name: original.from.name, email: original.from.address },
-      subject: original.subject, body: original.text, source: { type: "google-groups", messageId: moderationMessageId } };
+      subject: original.subject, body: original.text, ...(original.contentObservations ? { contentObservations: structuredClone(original.contentObservations) } : {}), source: { type: "google-groups", messageId: moderationMessageId } };
     if (original.headers.date?.[0]) {
       const date = new Date(original.headers.date[0]);
       if (!Number.isNaN(date.getTime())) item.submittedAt = date;

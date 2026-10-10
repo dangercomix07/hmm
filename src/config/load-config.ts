@@ -29,8 +29,9 @@ function number(value: unknown, min: number, max: number, label: string): number
 
 export function validateConfig(input: unknown): Config {
   const root = object(input, "config");
-  keys(root, ["dry_run", "policy", "evaluator", "rules", "sections", "unknown_sections"], "config");
+  keys(root, ["dry_run", "policy", "evaluator", "rules", "sections", "unknown_sections", "preamble"], "config");
   if (root.dry_run !== undefined && typeof root.dry_run !== "boolean") throw new Error("dry_run must be boolean");
+  if (root.preamble !== undefined && !["allow", "review"].includes(root.preamble as string)) throw new Error("Invalid preamble policy");
   let sections: SectionDefinition[] | undefined;
   if (root.sections !== undefined) {
     if (!Array.isArray(root.sections) || !root.sections.length || root.sections.length > 50) throw new Error("sections must contain 1 to 50 definitions");
@@ -103,6 +104,21 @@ export function validateConfig(input: unknown): Config {
       return { min, max };
     };
     switch (check) {
+      case "usable_body": {
+        keys(rule, [...common, "phrases"], id);
+        if (!Array.isArray(rule.phrases) || rule.phrases.length > 100) throw new Error("phrases must be an array of at most 100 entries");
+        const phrases = rule.phrases.map(p => string(p, "placeholder"));
+        if (phrases.some(p => p.length > 200 || /[\r\n]/.test(p))) throw new Error("Invalid placeholder phrase");
+        return { ...deterministic, check, phrases };
+      }
+      case "inline_code_limit": {
+        keys(rule, [...common, "max_lines"], id);
+        const max = number(rule.max_lines, 1, 10000, "max_lines");
+        if (!Number.isInteger(max)) throw new Error("max_lines must be an integer");
+        return { ...deterministic, check, max_lines: max };
+      }
+      case "no_quoted_history": case "inline_image_attachments":
+        keys(rule, common, id); return { ...deterministic, check };
       case "section_structure":
         keys(rule, common, id);
         if (!sections) throw new Error("section_structure requires section definitions");
@@ -117,11 +133,12 @@ export function validateConfig(input: unknown): Config {
         keys(rule, [...common, "min", "max"], id);
         return { ...deterministic, check, ...bounds() };
       case "forbidden_placeholder": {
-        keys(rule, [...common, "section", "phrases"], id);
+        keys(rule, [...common, "section", "phrases", "mixed_action"], id);
+        if (rule.mixed_action !== undefined && !["ignore", "review"].includes(rule.mixed_action as string)) throw new Error("Invalid mixed_action");
         if (!Array.isArray(rule.phrases) || !rule.phrases.length || rule.phrases.length > 100) throw new Error("phrases must contain 1 to 100 placeholders");
         const phrases = rule.phrases.map(p => string(p, "placeholder"));
         if (phrases.some(p => p.length > 200 || /[\r\n]/.test(p))) throw new Error("Invalid placeholder phrase");
-        return { ...deterministic, check, section: section(), phrases };
+        return { ...deterministic, check, section: section(), phrases, ...(rule.mixed_action ? { mixed_action: rule.mixed_action as "ignore" | "review" } : {}) };
       }
       case "minimum_length": {
         keys(rule, [...common, "min_chars"], id);
@@ -173,7 +190,7 @@ export function validateConfig(input: unknown): Config {
   }
   if (total && minimumContent > total.max) throw new Error("Section minimum lengths exceed maximum total length");
   if (sections && !rules.some(r => r.type === "deterministic" && r.check === "section_structure" && r.required)) throw new Error("Section profiles require a required section_structure rule");
-  return { ...(sections ? { sections, unknown_sections: (root.unknown_sections ?? "preserve") as "preserve" | "review" } : {}), dry_run: root.dry_run ?? true, policy, evaluator: { provider, timeout_ms: timeout }, rules };
+  return { ...(root.preamble ? { preamble: root.preamble as "allow" | "review" } : {}), ...(sections ? { sections, unknown_sections: (root.unknown_sections ?? "preserve") as "preserve" | "review" } : {}), dry_run: root.dry_run ?? true, policy, evaluator: { provider, timeout_ms: timeout }, rules };
 }
 
 export function parseConfig(text: string): Config {

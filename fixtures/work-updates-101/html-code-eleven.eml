@@ -1,0 +1,21 @@
+From: Alex <alex@example.com>
+To: team@example.com
+Subject: Synthetic update
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="fixture-boundary"
+
+--fixture-boundary
+Content-Type: text/html; charset=utf-8
+
+<p>Reproduced the reset.</p><p>Next steps:</p><p>Inspect the trace.</p><pre><code>step();
+step();
+step();
+step();
+step();
+step();
+step();
+step();
+step();
+step();
+step();</code></pre>
+--fixture-boundary--

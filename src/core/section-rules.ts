@@ -51,14 +51,15 @@ export function sectionRule(rule: DeterministicRule, parsed: SectionParse, unkno
     }
     case "section_url": return make(hasUrl(text) ? "PASS" : "FAIL", `${rule.section} requires an HTTP or HTTPS link.`);
     case "forbidden_placeholder": {
-      const normalize = (s: string) => s.toLowerCase().replace(/^[*_`]+|[*_`]+$/g, "").replace(/[.!]+$/, "").trim();
+      const normalize = (s: string) => s.toLowerCase().replace(/[.!]+$/, "").replace(/^[*_`]+|[*_`]+$/g, "").replace(/[.!]+$/, "").trim();
       const phrases = new Set(rule.phrases.map(normalize));
-      const hits = lines.filter(s => phrases.has(normalize(s))).length;
+      const placeholderLines = lines.filter(line => /[\p{L}\p{N}]/u.test(line));
+      const hits = placeholderLines.filter(s => phrases.has(normalize(s))).length;
       const contains = lines.some(line => rule.phrases.some(phrase => {
         const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, "iu").test(line);
       }));
-      return make(hits && hits === lines.length ? "FAIL" : contains ? "UNCERTAIN" : "PASS", hits && hits === lines.length ? `${rule.section} section contains only placeholder text.` : `${rule.section} mixes placeholder text with other content; review the unfinished entries.`, "placeholder");
+      return make(hits && hits === placeholderLines.length ? "FAIL" : contains && rule.mixed_action !== "ignore" ? "UNCERTAIN" : "PASS", hits && hits === placeholderLines.length ? `${rule.section} section contains only placeholder text.` : `${rule.section} mixes placeholder text with other content; review the unfinished entries.`, "placeholder");
     }
   }
 }

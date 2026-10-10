@@ -9,6 +9,7 @@ export interface Policy {
 }
 
 export interface Config {
+  preamble?: "allow" | "review";
   sections?: SectionDefinition[];
   unknown_sections?: "preserve" | "review";
   dry_run: boolean;

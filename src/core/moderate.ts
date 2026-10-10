@@ -52,6 +52,9 @@ async function withTimeout<T>(operation: (signal: AbortSignal) => Promise<T>, ms
 
 export async function moderate(raw: PendingItem, config: Config, evaluator?: Evaluator): Promise<ModerationResult> {
   const result: ModerationResult = { inputId: raw.id, deterministic: [], semantic: { ruleResults: [] }, decision: { status: "REVIEW", reasons: [] } };
+  if (raw.format === "text" && raw.id.trim() && !raw.body.trim() && config.rules.some(r => r.type === "deterministic" && r.check === "usable_body")) {
+    return moderateItem({ id: raw.id, body: raw.body, source: { type: "text" } }, config, evaluator);
+  }
   try {
     result.item = parseItem(raw);
   } catch (error) {
@@ -64,7 +67,7 @@ export async function moderate(raw: PendingItem, config: Config, evaluator?: Eva
 /** Adapter entry point for an already normalized Item; no transport-specific data. */
 export async function moderateItem(item: Item, config: Config, evaluator?: Evaluator): Promise<ModerationResult> {
   const result: ModerationResult = { inputId: item.id, item, deterministic: [], semantic: { ruleResults: [] }, decision: { status: "REVIEW", reasons: [] } };
-  if (!item.id.trim() || !item.body.trim()) {
+  if (!item.id.trim() || !item.body.trim() && !config.rules.some(r => r.type === "deterministic" && r.check === "usable_body")) {
     result.decision.reasons.push({ ruleId: "parser", explanation: "Missing input id or message body" });
     return withFeedback(result, config);
   }
@@ -72,7 +75,7 @@ export async function moderateItem(item: Item, config: Config, evaluator?: Evalu
     result.decision.reasons.push({ ruleId: "parser", explanation: "Update exceeds the supported section parsing size." });
     return withFeedback(result, config);
   }
-  result.deterministic = evaluateDeterministicRules(item, config.rules.filter(rule => rule.type === "deterministic"), config.sections, config.unknown_sections);
+  result.deterministic = evaluateDeterministicRules(item, config.rules.filter(rule => rule.type === "deterministic"), config.sections, config.unknown_sections, config.preamble);
   const rules = config.rules.filter(rule => rule.type === "semantic");
   if (rules.length && (!evaluator || config.evaluator.provider === "none")) {
     result.semantic = { ruleResults: rules.map(rule => ({ ruleId: rule.id, result: "UNCERTAIN", reason: "Semantic review is required; semantic evaluation is disabled." })) };

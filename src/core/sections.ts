@@ -3,7 +3,7 @@ export interface UpdateSection { name: string; heading: string; content: string;
 export interface SectionParse { original: string; sections: UpdateSection[]; issues: string[] }
 export const sectionKey = (value: string): string => value.trim().replace(/\s+/g, " ").toLowerCase();
 /** Exact configured names/aliases only. No fuzzy matching or rewriting. Fenced code is content. */
-export function parseSections(original: string, definitions: SectionDefinition[]): SectionParse {
+export function parseSections(original: string, definitions: SectionDefinition[], preamble: "allow" | "review" = "review"): SectionParse {
   const parsed: SectionParse = { original, sections: [], issues: [] };
   if (original.length > 100_000) { parsed.issues.push("Update exceeds the supported parsing size of 100000 characters."); return parsed; }
   const names = new Map<string, string>();
@@ -18,7 +18,7 @@ export function parseSections(original: string, definitions: SectionDefinition[]
       if (!fence) fence = marker;
       else if (marker[0] === fence[0] && marker.length >= fence.length && trimmed === marker) fence = undefined;
       if (current) current.content += line + "\n";
-      else parsed.issues.push(`Content before the first section at line ${i + 1}.`);
+      else if (preamble === "review") parsed.issues.push(`Content before the first section at line ${i + 1}.`);
       continue;
     }
     if (fence) { if (current) current.content += line + "\n"; continue; }
@@ -32,7 +32,7 @@ export function parseSections(original: string, definitions: SectionDefinition[]
       current = { name: known ?? candidate, heading: line, content: "", line: i + 1, known: Boolean(known) };
       parsed.sections.push(current);
     } else if (current) current.content += line + "\n";
-    else if (trimmed) parsed.issues.push(`Content before the first section at line ${i + 1}.`);
+    else if (trimmed && preamble === "review") parsed.issues.push(`Content before the first section at line ${i + 1}.`);
   }
   if (fence) parsed.issues.push("Unclosed code fence.");
   return parsed;
