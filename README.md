@@ -197,7 +197,7 @@ Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.m
 
 `npm run cli -- approve-test <gmail-message-id>` re-fetches one explicitly selected notification, parses and evaluates it again, and offers a send only for APPROVE and the configured disposable test group. It displays the exact reply and requires typing `APPROVE TEST` in an interactive terminal. Reuse the existing client JSON and run with `--reauthorize` once to grant read+send permission. The sending config remains disabled by default. Local reservations prevent repeated test sends from this checkout; there are no automatic retries.
 
-Follow the [controlled reply setup and manual verification guide](docs/gmail-approval-test.md). Gmail send success does not prove Google Groups published the post. No live API send has been performed in the cloud.
+Follow the [controlled reply setup and manual verification guide](docs/gmail-approval-test.md). Gmail send success alone does not prove Google Groups published the post. The user completed the local HMM TEST 003 experiment and manually confirmed publication; see the [completion record](docs/milestone4b-completion.md). No live API send was performed in the cloud.
 
 ## Progress and storage
 
@@ -230,10 +230,12 @@ tests/          unit, pipeline, and CLI checks
 
 1. Local core and fake-adapter workflow: implemented.
 2. Jev evaluator: implemented against the official SDK contract and tested with mocked HTTP; live fixture validation is pending API access and a key.
-3. Offline Gmail/Google Groups harness: implemented with real MIME parsing, synthetic fixtures, a fake Gmail client, and non-executable action plans. Live Gmail access and sender authentication are not implemented.
-4. Google Groups approval: verify one disposable message before enabling any real approval.
-5. Optional progress extraction, persistent storage, and summary primitives.
+3. Offline Gmail/Google Groups harness: implemented with bounded MIME parsing and synthetic regression fixtures.
+4. Live Gmail read-only integration: verified locally with real test-group notifications.
+5. Controlled Gmail approval reply: verified locally for one explicitly selected disposable post, with user-confirmed publication in Google Groups.
+6. Suggested next milestone: real Gmail input evaluated by Jev in read-only mode; assess judgments before connecting AI decisions to sending.
+7. Before unattended operation: trusted sender-authentication enforcement, a durable action ledger, and reconciliation of uncertain sends. Progress extraction, persistent reporting and summaries remain later work.
 
-Email action plans now have stable source-derived IDs, but there is no durable action ledger or cross-run deduplication. The existing general-purpose pipeline rejects duplicate IDs within a batch, but rerunning it can repeat enabled fake actions. Adapter failures propagate; actions are not retried. Real integrations still need idempotency and recovery before production use. The email harness has no executor at all.
+Stable ActionIds and local execution reservations protect the controlled test within the same checkout, including concurrent attempts and token reauthorization. They are not a production ledger and do not provide exactly-once execution across machines or separate notifications. The email check commands emit non-executable plans; only the explicitly confirmed `approve-test` command invokes the send executor. There is no scheduler or automatic approval loop.
 
 No dashboard, database server, agent framework, or licensing terms have been added.

@@ -2,7 +2,7 @@
 
 `approve-test` is the first command that can send a real email. It sends one reply to one explicitly selected Gmail notification after fresh parsing/evaluation and an exact interactive confirmation. `check`, `check-email` and `gmail-check` retain their dry-run/read-only behavior. The evaluator and policy do not send mail.
 
-The user reports that a normal manual Gmail reply already approved a disposable post in `hmm-testing`. This establishes the manual behavior for that experiment, not a verified Gmail API outcome. No live send was attempted in Codex cloud. The local API test below remains to be performed and checked by the user.
+Milestone 4B is complete for the controlled disposable-group experiment. The user ran `approve-test` locally for **HMM TEST 003**, confirmed the send, and then confirmed that Google Groups published the selected post. The supplied CLI output reports `SENT`, a returned Gmail thread matching the selected notification, and `recordSaved: true`. This is user-verified publication after a Gmail API send, not automatic Groups verification. No live send was attempted in Codex cloud. See the [milestone completion record](milestone4b-completion.md).
 
 ## Authorization: reuse the existing client and token
 
@@ -88,7 +88,7 @@ Anything else, EOF, Ctrl+C or a timeout cancels. A real interactive terminal is 
 
 7. The command sends one reply and stops. A successful result contains `status: SENT`, the stable action ID, Gmail's returned message ID and thread ID. It explicitly says **Google Groups approval is NOT programmatically verified**. If Gmail returns a different thread ID, it warns without resending.
 8. Check Google Groups manually: confirm that **this selected post** left the pending queue and is published. Check that no other post was approved by this experiment. Record the outcome locally (sent message/thread IDs and published/not published/unknown). No Groups scraping or automatic verification is performed.
-9. Set `sending.enabled: false` when finished.
+9. Optionally set `sending.enabled: false` when finished as an extra local off switch. Leaving it enabled does not start a scheduler or bypass explicit message selection and confirmation.
 
 ## Reply construction and official sources
 
@@ -128,4 +128,4 @@ Validation: **154 tests passed** (133 existing plus 21 added), `npm run typechec
 
 Offline tests cover fresh approval/refusal paths, explicit group/recipient guards, message-ID and metadata failures, exact confirmation/cancellation, noninteractive CLI rejection, RFC/Unicode/threading, scope expansion, shared-token reuse, explicit reauthorization and insufficient grants, account mismatch, one POST only, 4xx/5xx, unknown outcomes, record failures, cross-run and concurrent duplicates. All HTTP/OAuth send boundaries are mocked; CI needs no Google credentials or live API access.
 
-No scheduler, automatic polling, approve-all, background service, rejection email, production approval workflow, database, Groups scraping or unattended mode was added. The cloud performed **zero live sends**. Milestone 4B's live outcome remains pending the user's fresh-post test above.
+No scheduler, automatic polling, approve-all, background service, rejection email, production approval workflow, database, Groups scraping or unattended mode was added. The cloud performed **zero live sends**. The user subsequently confirmed that the locally sent reply published HMM TEST 003 in the test group. This validates the controlled experiment, not unattended or production readiness.

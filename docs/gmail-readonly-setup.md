@@ -107,9 +107,9 @@ gmail_query: 'from:hmm-testing+msgappr@googlegroups.com subject:"Message Pending
 
 Keep these settings in the ignored `config/google-groups.local.yaml`; no credentials belong there. The supplied notification has no Reply-To, References or In-Reply-To. The plan therefore targets the outer From and uses the outer pending Message-ID as its reply parent. Its subject includes a pending-message marker and is preserved exactly. The forwarded original identifies the configured group in To. Its original subject literally contains `Subject:`; the parser preserves this text instead of guessing a correction.
 
-The supplied raw headers contain Authentication-Results and Received-SPF reporting passes, a googlegroups.com DKIM signature, and ARC headers. These are observations from pasted input, not independent authentication verification. Private identifiers, signature values and delivery headers are omitted here. Live approval-by-reply behavior remains unverified.
+The supplied raw headers contain Authentication-Results and Received-SPF reporting passes, a googlegroups.com DKIM signature, and ARC headers. These are observations from pasted input, not independent authentication verification. Private identifiers, signature values and delivery headers are omitted here. The subsequent controlled API reply test was user-confirmed to publish HMM TEST 003; see the [Milestone 4B completion record](milestone4b-completion.md). Sender authentication is still not independently verified.
 
-After the local run, record privately for each of the two messages:
+Evidence from the user-supplied local output (private identifiers omitted):
 
 | Check | Actual result |
 | --- | --- |
@@ -117,9 +117,9 @@ After the local run, record privately for each of the two messages:
 | MIME parsing and Groups parsing | User-supplied live output shows both candidates parsed successfully |
 | Original author/subject correct | Both original subjects/authors extracted in user-supplied live output |
 | Decision and non-executable plan | TEST 001: APPROVE/approval-reply; TEST 002: REJECT/withhold-approval; neither executed |
-| From / Reply-To / Message-ID / References / In-Reply-To / threadId | Pending local inspection |
-| Group recipient, delimiter and original-body structure | Pending local inspection |
-| Plain/HTML agreement and approval wording | Pending local inspection |
-| Authentication-Results, SPF, DKIM and ARC headers | Pending local inspection; not verified |
+| From / Reply-To / Message-ID / References / In-Reply-To / threadId | Configured Groups sender; Reply-To and parent headers absent; pending Message-ID and Gmail thread IDs present |
+| Group recipient, delimiter and original-body structure | Configured group in inline RFC822 original; no text-forward delimiter in the wrapper |
+| Plain/HTML agreement and approval wording | Wrapper differs in supported link/footer wording; original alternatives match; approval-by-reply wording present |
+| Authentication-Results, SPF, DKIM and ARC headers | Present; reported pass results observed, not independently verified |
 
 Milestone 4A read-only audit: this command's Gmail API calls are only GET list and GET RAW. OAuth token exchange/refresh uses Google's authentication endpoints, not mailbox mutation. This command has no send, drafts, modify, delete or Groups mutation capability, no executor, no background loop, and no live Jev dependency. The separate Milestone 4B command adds only a controlled reply send. The installed auth library handles credentials and contains general authenticated HTTP utilities, but those are not exposed as Gmail mutation capabilities by this app. Before any future sending milestone, actual format/approval semantics, sender authentication, threading, authorization and durable deduplication/recovery still need separate validation. This milestone stops at printed plans.

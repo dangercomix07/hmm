@@ -1,8 +1,8 @@
-# Manual Google Groups integration test (future)
+# Manual Google Groups integration test
 
-Approval-by-reply is unverified. This is a plan for after real Gmail and reply adapters are implemented, not a runnable test today. It must never run in CI.
+The user completed the controlled local API reply experiment for HMM TEST 003 and confirmed publication. See the [completion record](milestone4b-completion.md) and [current command/setup guide](gmail-approval-test.md). This procedure remains manual and must never run in CI.
 
-The current offline harness can construct a non-executable reply plan from synthetic MIME fixtures. Its proposed body is not a verified approval command. See [the offline integration notes](gmail-google-groups-integration.md) for what has been established without Google access.
+The result applies to the disposable test group and selected post. It does not establish production readiness or automatic sender authentication. For further experiments, use a fresh pending post and the explicit `approve-test` confirmation flow.
 
 1. Use a disposable test group and a moderator account authorized for that group.
 2. Submit one synthetic message with a unique subject and fake content.
