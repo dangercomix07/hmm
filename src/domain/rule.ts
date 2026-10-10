@@ -4,6 +4,13 @@ interface BaseRule {
 }
 
 export type DeterministicRule = BaseRule & { type: "deterministic" } & (
+  | { check: "section_structure" }
+  | { check: "required_section" | "nonempty_section" | "unique_section"; section: string }
+  | { check: "section_length"; section: string; min: number; max: number }
+  | { check: "bullet_count"; section: string; min: number; max: number }
+  | { check: "total_length"; min: number; max: number }
+  | { check: "forbidden_placeholder"; section: string; phrases: string[] }
+  | { check: "section_url"; section: string }
   | { check: "minimum_length"; min_chars: number }
   | { check: "required_heading"; heading: string }
   | { check: "required_url" }

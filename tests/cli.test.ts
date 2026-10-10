@@ -10,11 +10,11 @@ function cli(...args: string[]) {
 }
 
 test("CLI checks good and vague fixtures with meaningful process exit statuses", () => {
-  const good = cli("check", "fixtures/good-update.txt");
+  const good = cli("check", "fixtures/good-update.txt", "--config", "config/example.yaml");
   assert.equal(good.status, 0, good.stderr);
   assert.match(good.stdout, /Decision\nAPPROVE/);
   assert.match(good.stdout, /DRY RUN/);
-  const vague = cli("check", "fixtures/vague-update.txt");
+  const vague = cli("check", "fixtures/vague-update.txt", "--config", "config/example.yaml");
   assert.equal(vague.status, 1, vague.stderr);
   assert.match(vague.stdout, /Decision\nREJECT/);
 });

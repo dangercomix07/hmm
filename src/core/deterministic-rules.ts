@@ -1,9 +1,14 @@
+import { parseSections, type SectionDefinition } from "./sections.js";
+import { sectionRule } from "./section-rules.js";
 import type { Item } from "../domain/item.js";
 import type { DeterministicRule } from "../domain/rule.js";
 import type { RuleResult } from "../domain/evaluation.js";
 
-export function evaluateDeterministicRules(item: Item, rules: DeterministicRule[]): RuleResult[] {
+export function evaluateDeterministicRules(item: Item, rules: DeterministicRule[], sections: SectionDefinition[] = [], unknownSections: "preserve" | "review" = "preserve"): RuleResult[] {
+  const parsed = parseSections(item.body, sections);
   return rules.map(rule => {
+    const structured = sectionRule(rule, parsed, unknownSections);
+    if (structured) return structured;
     const ruleId = rule.id;
     let pass: boolean;
     let reason: string;

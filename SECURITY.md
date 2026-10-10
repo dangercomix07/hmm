@@ -43,3 +43,12 @@ new ledger records. Deleting state can remove duplicate protection.
 See [Milestone 5A's authentication/storage contract and sources](docs/milestone5a-safety-foundations.md)
 and the [practical threat model](docs/threat-model.md), including the unproven Gmail header provenance,
 local filesystem limitations, replay and stolen-token risks.
+
+## Deterministic pre-check limits
+
+The team-update profile checks structure and completeness only. APPROVE does not establish
+truth, technical correctness, meaningful progress or origin authentication. Missing semantic
+requirements remain REVIEW when evaluation is disabled. Update content cannot change rules,
+feedback templates or source-derived execution identity. Human feedback never generates work
+or measurements on the engineer's behalf. The offline pre-check has no send adapter; it does
+not waive any authentication, ledger, confirmation or uncertain-action invariant above.

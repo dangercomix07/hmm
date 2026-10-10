@@ -10,7 +10,7 @@ input → parser → rules → decision → action
 
 Normal TypeScript code decides what happens. An evaluator answers questions; it never controls actions. The core knows nothing about Gmail or Google Groups.
 
-The local CLI, decision engine, YAML configuration, fake adapters, and fixtures work without external accounts. An optional Jev evaluator adds real semantic evaluation through TypeSafe. The default fake workflow and automated tests need no API key or network after dependencies are installed. A fresh dependency install needs npm access; a fully populated npm cache can also support `npm ci --offline`.
+hmm can run entirely with deterministic rules. The default team-update profile checks structure and completeness. Semantic evaluators are optional extensions; use them only when deterministic checks are insufficient for the workflow. The CLI and tests need no account, API key, or network after dependencies are installed. A fresh dependency install needs npm access; a fully populated npm cache can also support `npm ci --offline`.
 
 ## Quick start
 
@@ -20,18 +20,22 @@ Use Node.js 22 or later (development and CI use Node.js 24).
 npm ci
 npm test
 npm run typecheck
-npm run cli -- check fixtures/good-update.txt
+npm run cli -- check fixtures/team-updates/useful-concise.md
 ```
 
-The good fixture prints `APPROVE`. Try these too:
+The example prints `APPROVE`. Check your own update before sending it:
 
 ```bash
-npm run cli -- check fixtures/vague-update.txt
-npm run cli -- check fixtures/missing-next-steps.txt
-npm run cli -- check fixtures/technical-update.txt
+npm run cli -- check update.md --config config/team-update.yaml
+npm run cli -- check fixtures/team-updates/missing-next-steps.md
+npm run cli -- check fixtures/team-updates/failed-experiment.md
 ```
 
-The first two print `REJECT`; the technical update prints `APPROVE`.
+The missing-section example prints `REJECT`. The failed experiment prints `APPROVE` because it
+contains the configured information. Neither outcome proves technical correctness or truth.
+See the [team-update guide](docs/team-updates.md) for headings, aliases, feedback and review policy.
+Use `--verbose` to include rule IDs. The older fake-evaluator examples still work with
+`--config config/example.yaml`; they are demonstrations, not the product profile.
 
 The `check` and `check-email` commands always perform a dry run, even when `dry_run: false` is in the configuration. `gmail-check` remains read-only. The separate `approve-test` command can send one reply only with test sending enabled and exact interactive confirmation (see Milestone 4B below).
 
@@ -49,16 +53,16 @@ Deterministic rules use ordinary code. These checks are supported:
 | `required_keyword` | `keyword` | Case-insensitive substring match. |
 | `email_domain` | `domain` | Matches the exact author email domain; missing author metadata means uncertainty. |
 
-`check` can be omitted for the original example using `min_chars`. Other check types are not implemented yet; an unknown type fails configuration validation.
+`check` can be omitted for the original example using `min_chars`. Section profiles also support required/nonempty/unique sections, section and total length ranges, bullet counts, placeholders, links and structural validation. See the [rule reference](docs/team-updates.md#rule-reference). Unknown checks fail configuration validation; custom regex checks are not supported.
 
 Semantic rules contain an `instruction` for an evaluator. They describe questions such as whether the update explains concrete progress. An adapter is a small piece of code connecting a common interface to a particular implementation.
 
 ## Configuration
 
-Start with [config/example.yaml](config/example.yaml), or select another file:
+Start with [config/team-update.yaml](config/team-update.yaml), which is the default for `check`:
 
 ```bash
-npm run cli -- check fixtures/good-update.txt --config config/example.yaml
+npm run cli -- check update.md --config config/team-update.yaml
 ```
 
 Example rule:
@@ -82,9 +86,9 @@ The decision policy is deliberately conservative:
 
 Semantic results need a confidence value per rule or an overall confidence value. Values must be between 0 and 1. The default minimum is 0.8. Missing, duplicate, extra, or contradictory results never establish approval. `uncertain_rule.action` only accepts `review`.
 
-## AI evaluators
+## Optional semantic evaluation
 
-`provider: fake` remains the default. **The fake evaluator is an offline demo, not an AI assessment.** It ignores free-form instructions and recognizes two rule IDs:
+`provider: none` is the default when evaluator configuration is omitted. Semantic rules then remain unresolved and produce REVIEW. The team profile has no semantic rules. Explicit `provider: fake` preserves the old demo. **The fake evaluator is an offline demo, not an AI assessment.** It ignores free-form instructions and recognizes two rule IDs:
 
 - `real_progress`: a listed concrete-work verb and a number must appear in the text.
 - `next_steps`: a `Next steps:` section must start with a listed action verb and contain at least five words.
@@ -116,7 +120,7 @@ npm run cli -- check fixtures/good-update.txt --config config/jev.example.yaml
 
 Jev returns `p`, the probability that the requirement holds. The adapter maps `p > 0.5` to `PASS` with confidence `p`, `p < 0.5` to `FAIL` with confidence `1 - p`, and an exact tie to `UNCERTAIN`. The existing policy then applies `min_confidence` (default 0.8): a tentative pass or fail below that confidence becomes `REVIEW`. This conversion uses the probability of the selected answer, not a separate Jev confidence score. It is not a guarantee that the answer is correct.
 
-Jev does not generate explanations. The displayed reason reports the yes probability. Missing keys, network errors, timeouts, HTTP errors, and invalid or incomplete answers lead to `REVIEW`; there is no fallback to fake judgments or automatic retry. See [the API mapping and manual test notes](docs/jev-evaluator.md) for official sources and current live-test status.
+Jev does not generate explanations. Its structured result records the yes probability; the human pre-check view uses provider-independent feedback. Missing keys, network errors, timeouts, HTTP errors, and invalid or incomplete answers lead to `REVIEW`; there is no fallback to fake judgments or automatic retry. See [the API mapping and manual test notes](docs/jev-evaluator.md) for official sources and current live-test status.
 
 ## Using the pipeline
 
@@ -177,7 +181,7 @@ Raw email means the message bytes received from the transport. Parsed email mean
 
 The good fixture returns `APPROVE` and a **non-executable** reply plan with the recipient, subject, threading metadata, and stable action ID. `vague.eml` returns `REJECT` with no approval reply. `ambiguous.eml` returns `REVIEW`. Missing critical reply metadata requires review even if the content passed.
 
-`check-email` is always offline and only accepts `provider: fake`. It cannot send email or write external storage, even if a supplied config sets `dry_run: false`. Existing `check <text-file>` behavior is unchanged, including optional Jev evaluation.
+`check-email` is always offline and only accepts `provider: fake`. It cannot send email or write external storage, even if a supplied config sets `dry_run: false`. `check <text-file>` defaults to the deterministic team profile; optional Jev evaluation still requires an explicit configuration.
 
 Use `--config` for rules and `--email-config config/google-groups.example.yaml` for the group address, allowed notification senders, subject filter, and candidate search query. These are fixture settings, not universal Google addresses. Search matches and matching headers are not authentication.
 
@@ -233,7 +237,7 @@ tests/          unit, pipeline, and CLI checks
 3. Offline Gmail/Google Groups harness: implemented with bounded MIME parsing and synthetic regression fixtures.
 4. Live Gmail read-only integration: verified locally with real test-group notifications.
 5. Controlled Gmail approval reply: verified locally for one explicitly selected disposable post, with user-confirmed publication in Google Groups.
-6. Suggested next milestone: real Gmail input evaluated by Jev in read-only mode; assess judgments before connecting AI decisions to sending.
+6. Deterministic checks cannot establish truth, technical correctness, engineering quality, genuine progress, scientific validity or intent. Use configured human/semantic review when needed.
 7. Milestone 5A adds fail-closed authentication interfaces, a durable local action ledger and explicit reconciliation states. A proven production Gmail authentication provider and operational reconciliation remain blockers before unattended operation. Progress reporting remains later work.
 
 Versioned, mailbox-based ActionIds and an atomic durable local ledger protect the controlled test across restarts, concurrent attempts and token reauthorization. They do not provide exactly-once execution across machines or separate notifications. Legacy reservations remain blocking. The email check commands emit non-executable plans; only the explicitly confirmed `approve-test` command invokes the send executor. There is no scheduler or automatic approval loop.
@@ -247,3 +251,14 @@ and [threat model](docs/threat-model.md). Raw Gmail headers are not proven authe
 `approve-test` now fails closed by default. Reproducing the 4B disposable-group experiment requires
 the explicitly named, visibly warned test-only authentication exception; it never grants TRUSTED.
 There is no scheduler or autonomous sender. `npm test` is offline with a loopback-only network guard.
+
+## Milestone 5B product hardening
+
+The [team-update profile](config/team-update.yaml) requires nonempty Progress and Next steps.
+Evidence and Blockers are optional; supplied sections must be nonempty. No numeric result,
+positive outcome, prescribed verb, or paid evaluator is required. A failed experiment can pass.
+
+The [20 synthetic examples](fixtures/team-updates/README.md) include useful, vague, malformed and
+injection-containing updates. A vague but complete update can pass this structural profile.
+Require semantic review explicitly when your workflow needs a judgment about meaning.
+All Milestone 5A authentication, ledger and supervised-send safeguards remain in place.

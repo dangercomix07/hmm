@@ -1,3 +1,4 @@
+import type { FeedbackItem } from "./feedback.js";
 import type { Item } from "./item.js";
 import type { Evaluation, RuleResult } from "./evaluation.js";
 
@@ -7,6 +8,7 @@ export interface Decision {
 }
 
 export interface ModerationResult {
+  feedback?: FeedbackItem[];
   inputId: string;
   item?: Item;
   deterministic: RuleResult[];

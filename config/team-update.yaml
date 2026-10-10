@@ -1,0 +1,36 @@
+# Offline completeness checks. APPROVE does not establish truth or engineering quality.
+dry_run: true
+evaluator:
+  provider: none
+sections:
+  - name: Progress
+    aliases: [Work done, What changed]
+  - name: Evidence
+    aliases: [Results, Observations]
+  - name: Blockers
+    aliases: [Dependencies]
+  - name: Next steps
+    aliases: [Next actions, Up next]
+unknown_sections: preserve
+policy:
+  fail_required_rule: {action: reject}
+  uncertain_rule: {action: review}
+  default_action: review
+  min_confidence: 0.8
+rules:
+  - {id: structure, type: deterministic, required: true, check: section_structure}
+  - {id: size, type: deterministic, required: true, check: total_length, min: 1, max: 12000}
+  - {id: progress-present, type: deterministic, required: true, check: required_section, section: Progress}
+  - {id: progress-content, type: deterministic, required: true, check: nonempty_section, section: Progress}
+  - {id: next-present, type: deterministic, required: true, check: required_section, section: Next steps}
+  - {id: next-content, type: deterministic, required: true, check: nonempty_section, section: Next steps}
+  - {id: evidence-content, type: deterministic, required: true, check: nonempty_section, section: Evidence}
+  - {id: blockers-content, type: deterministic, required: true, check: nonempty_section, section: Blockers}
+  - id: progress-placeholder
+    type: deterministic
+    required: true
+    check: forbidden_placeholder
+    section: Progress
+    phrases: &placeholders [TBD, TODO, N/A, Will update later, Coming soon, Nothing yet, Same as before]
+  - {id: evidence-placeholder, type: deterministic, required: true, check: forbidden_placeholder, section: Evidence, phrases: *placeholders}
+  - {id: next-placeholder, type: deterministic, required: true, check: forbidden_placeholder, section: Next steps, phrases: *placeholders}

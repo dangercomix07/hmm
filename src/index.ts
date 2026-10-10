@@ -38,3 +38,8 @@ export type { ActionLedger, ActionIdentity, ActionRecord, ActionState, Reconcili
 export type { AuthenticationPolicy, AuthenticationEvidenceProvider, AuthenticationAttestation, NotificationTrust } from "./ports/notification-authentication.js";
 export { LocalActionLedger } from "./adapters/ledger/local-action-ledger.js";
 export { verifyNotificationAuthentication, defaultAuthenticationPolicy } from "./adapters/email/notification-authentication.js";
+
+export { parseSections } from "./core/sections.js";
+export type { SectionDefinition, SectionParse, UpdateSection } from "./core/sections.js";
+export type { FeedbackItem } from "./domain/feedback.js";
+export { formatFeedback } from "./adapters/notifications/console-notifier.js";
