@@ -1,6 +1,6 @@
 {
   "name": "hmm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A small configurable rules checker and gatekeeper",
   "type": "module",
@@ -13,8 +13,9 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test dist/tests/*.test.js",
-    "cli": "npm run build --silent && node dist/src/cli/index.js"
+    "test": "npm run build && node --import ./dist/tests/offline-guard.js --test dist/tests/*.test.js",
+    "cli": "npm run build --silent && node dist/src/cli/index.js",
+    "config:check": "npm run build --silent && node dist/src/cli/index.js config-check"
   },
   "dependencies": {
     "google-auth-library": "^11.2.0",

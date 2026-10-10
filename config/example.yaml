@@ -1,3 +1,5 @@
+# Legacy fake-evaluator demonstration and approve-test profile.
+# moderate-gmail always uses work-updates-101.yaml instead.
 dry_run: true
 policy:
   default_action: review
@@ -13,6 +15,7 @@ rules:
   - id: minimum_length
     type: deterministic
     required: true
+    check: minimum_length
     min_chars: 100
   - id: real_progress
     type: semantic

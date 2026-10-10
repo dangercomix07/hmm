@@ -50,30 +50,39 @@ async function withTimeout<T>(operation: (signal: AbortSignal) => Promise<T>, ms
   }
 }
 
-export async function moderate(raw: PendingItem, config: Config, evaluator: Evaluator): Promise<ModerationResult> {
+export async function moderate(raw: PendingItem, config: Config, evaluator?: Evaluator): Promise<ModerationResult> {
   const result: ModerationResult = { inputId: raw.id, deterministic: [], semantic: { ruleResults: [] }, decision: { status: "REVIEW", reasons: [] } };
+  if (raw.format === "text" && raw.id.trim() && !raw.body.trim() && config.rules.some(r => r.type === "deterministic" && r.check === "usable_body")) {
+    return moderateItem({ id: raw.id, body: raw.body, source: { type: "text" } }, config, evaluator);
+  }
   try {
     result.item = parseItem(raw);
   } catch (error) {
     result.decision.reasons.push({ ruleId: "parser", explanation: error instanceof Error ? error.message : "Parsing failed" });
-    return result;
+    return withFeedback(result, config);
   }
   return moderateItem(result.item, config, evaluator);
 }
 
 /** Adapter entry point for an already normalized Item; no transport-specific data. */
-export async function moderateItem(item: Item, config: Config, evaluator: Evaluator): Promise<ModerationResult> {
+export async function moderateItem(item: Item, config: Config, evaluator?: Evaluator): Promise<ModerationResult> {
   const result: ModerationResult = { inputId: item.id, item, deterministic: [], semantic: { ruleResults: [] }, decision: { status: "REVIEW", reasons: [] } };
-  if (!item.id.trim() || !item.body.trim()) {
+  if (!item.id.trim() || !item.body.trim() && !config.rules.some(r => r.type === "deterministic" && r.check === "usable_body")) {
     result.decision.reasons.push({ ruleId: "parser", explanation: "Missing input id or message body" });
-    return result;
+    return withFeedback(result, config);
   }
-  result.deterministic = evaluateDeterministicRules(item, config.rules.filter(rule => rule.type === "deterministic"));
+  if (config.sections && item.body.length > 100_000) {
+    result.decision.reasons.push({ ruleId: "parser", explanation: "Update exceeds the supported section parsing size." });
+    return withFeedback(result, config);
+  }
+  result.deterministic = evaluateDeterministicRules(item, config.rules.filter(rule => rule.type === "deterministic"), config.sections, config.unknown_sections, config.preamble);
   const rules = config.rules.filter(rule => rule.type === "semantic");
-  if (rules.length) {
+  if (rules.length && (!evaluator || config.evaluator.provider === "none")) {
+    result.semantic = { ruleResults: rules.map(rule => ({ ruleId: rule.id, result: "UNCERTAIN", reason: "Semantic review is required; semantic evaluation is disabled." })) };
+  } else if (rules.length) {
     try {
       const evaluationItem = structuredClone(item);
-      result.semantic = validateEvaluation(await withTimeout(signal => evaluator.evaluate(evaluationItem, structuredClone(rules), signal), config.evaluator.timeout_ms), rules);
+      result.semantic = validateEvaluation(await withTimeout(signal => evaluator!.evaluate(evaluationItem, structuredClone(rules), signal), config.evaluator.timeout_ms), rules);
       if (result.semantic.confidence !== undefined && result.semantic.confidence < config.policy.min_confidence) throw new Error("Overall evaluator confidence is too low");
       result.semantic.ruleResults = result.semantic.ruleResults.map(entry => ({
         ...entry,
@@ -82,9 +91,25 @@ export async function moderateItem(item: Item, config: Config, evaluator: Evalua
     } catch (error) {
       // Do not log provider exception text: it may contain credentials or private data.
       result.decision.reasons.push({ ruleId: "evaluator", explanation: "Evaluator failed, timed out, returned invalid output, or reported low confidence." });
-      return result;
+      return withFeedback(result, config);
     }
   }
   result.decision = decide(config.rules, [...result.deterministic, ...result.semantic.ruleResults], config.policy);
+  return withFeedback(result, config);
+}
+
+/** Feedback templates are code/config owned. Never forward model-generated rewrites to engineers. */
+function withFeedback(result: ModerationResult, config: Config): ModerationResult {
+  const feedback = result.deterministic.filter(r => r.result !== "PASS").map(r => r.feedback ?? {
+    ruleId: r.ruleId, category: "incomplete" as const, severity: r.result === "UNCERTAIN" ? "review" as const : "error" as const, message: r.reason ?? "A configured requirement was not met.",
+  });
+  for (const r of result.semantic.ruleResults) {
+    if (r.result === "PASS" && (r.confidence ?? 0) >= config.policy.min_confidence) continue;
+    const rule = config.rules.find(rule => rule.id === r.ruleId);
+    feedback.push({ ruleId: r.ruleId, category: "semantic-review", severity: "review", message: `Human or semantic review is needed for: ${rule?.type === "semantic" ? rule.instruction : "the configured semantic requirement"}` });
+  }
+  if (result.decision.reasons.some(r => r.ruleId === "evaluator")) feedback.push({ ruleId: "evaluator", category: "semantic-review", severity: "review", message: "Semantic evaluation was unavailable or unreliable. Human review is required." });
+  if (result.decision.reasons.some(r => r.ruleId === "parser")) feedback.push({ ruleId: "parser", category: "malformed", severity: "review", message: "The update could not be parsed. Supply a nonempty update within the supported size limit." });
+  result.feedback = feedback;
   return result;
 }

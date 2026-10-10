@@ -1,0 +1,4 @@
+Reproduced the reset.
+> The diagnostic says "device busy".
+Next steps:
+Inspect the trace.

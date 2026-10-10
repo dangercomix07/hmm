@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { actionIdFor, sourceKey } from "./action-identity.js";
 import type { Decision } from "../../domain/decision.js";
 import { messageIds, singleMailbox } from "../email/mime-parser.js";
 import type { ModerationEmail } from "../email/types.js";
@@ -38,7 +38,7 @@ export function buildApprovalReplyPlan(message: ModerationEmail): ApprovalReplyP
   if (!notification.references && parents.length > 1) throw new Error("Ambiguous parent threading metadata");
   const references = [...new Set([...parents, notification.messageId])];
   return {
-    actionId: createHash("sha256").update(JSON.stringify([notification.source.type, notification.source.account, message.moderationMessageId, "approval-reply"])).digest("hex"),
+    actionId: actionIdFor(sourceKey(notification.source.type === "gmail" ? notification.source.account : `file:${notification.source.account}`, message.moderationMessageId)),
     moderationMessageId: message.moderationMessageId,
     targetReplyAddress: target.address,
     ...(notification.threadId ? { threadId: notification.threadId } : {}),

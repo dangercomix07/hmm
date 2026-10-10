@@ -1,3 +1,4 @@
+import type { SectionDefinition } from "../core/sections.js";
 import type { Rule } from "../domain/rule.js";
 
 export interface Policy {
@@ -8,8 +9,11 @@ export interface Policy {
 }
 
 export interface Config {
+  preamble?: "allow" | "review";
+  sections?: SectionDefinition[];
+  unknown_sections?: "preserve" | "review";
   dry_run: boolean;
   policy: Policy;
-  evaluator: { provider: "fake" | "jev"; timeout_ms: number };
+  evaluator: { provider: "none" | "fake" | "jev"; timeout_ms: number };
   rules: Rule[];
 }

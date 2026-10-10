@@ -1,9 +1,12 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, writeFile, rename, rm } from "node:fs/promises";
-import { join } from "node:path";
+import type { ActionLedger } from "../../ports/action-ledger.js";
+import { LocalActionLedger } from "../ledger/local-action-ledger.js";
+import { sourceKey, digest } from "./action-identity.js";
+import { consumeConfirmedTestPlan } from "./prepare-test-approval.js";
+import { randomUUID } from "node:crypto";
 import { messageIds, singleMailbox } from "../email/mime-parser.js";
 import type { ApprovalReplyPlan } from "./email-action-plan.js";
 import type { EmailReplyExecutor, ReplyExecutionResult } from "../../ports/email-reply-executor.js";
+export { gmailAccountEmail, requireSameGmailAccount } from "../inbox/gmail-account.js";
 import type { AccessTokenProvider } from "../inbox/real-gmail-client.js";
 
 const gmailId = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
@@ -51,76 +54,43 @@ export function buildReplyRfc(plan: ApprovalReplyPlan, sender: string): string {
   return message;
 }
 
-/** Profile is read-only and binds the read/send grants to the same actual mailbox. */
-export async function gmailAccountEmail(token: AccessTokenProvider, fetcher: typeof fetch = fetch): Promise<string> {
-  try {
-    const value = await token();
-    if (!value) throw new Error();
-    const response = await fetcher("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
-      method: "GET", headers: { Authorization: `Bearer ${value}` }, redirect: "error", signal: AbortSignal.timeout(30_000),
-    });
-    if (!response.ok) throw new Error();
-    const data = await response.json() as { emailAddress?: unknown };
-    if (typeof data.emailAddress !== "string") throw new Error();
-    return bareAddress(data.emailAddress);
-  } catch { throw new Error("Cannot verify the Gmail account identity. Check authorization and connectivity. No send attempted."); }
-}
-
-export function requireSameGmailAccount(reader: string, sender: string): void {
-  bareAddress(reader); bareAddress(sender);
-  if (reader.toLowerCase() !== sender.toLowerCase()) throw new Error("Read and send OAuth accounts differ. No send attempted. Reauthorize the existing client as the same moderator.");
-}
-
-/** Development lock/record, not a durable production ledger. Never automatically cleared. */
-export class LocalTestExecutionRecords {
-  constructor(private readonly directory = ".hmm/actions") {}
-  async reserve(plan: ApprovalReplyPlan, sender: string): Promise<string> {
-    await mkdir(this.directory, { recursive: true, mode: 0o700 });
-    // Stable even if the refresh grant (and therefore ActionId) changes after reauthorization.
-    const key = createHash("sha256").update(JSON.stringify([sender.toLowerCase(), plan.moderationMessageId])).digest("hex");
-    const path = join(this.directory, `${key}.json`);
-    try {
-      await writeFile(path, JSON.stringify({ actionId: plan.actionId, status: "ATTEMPTING", createdAt: new Date().toISOString() }), { flag: "wx", mode: 0o600 });
-    } catch { throw new Error("Test execution record exists or cannot be reserved. No send attempted. Inspect local records and Gmail Sent; do not repeat an uncertain send."); }
-    return path;
-  }
-  async finish(path: string, result: Omit<ReplyExecutionResult, "recordSaved">): Promise<boolean> {
-    const temporary = `${path}.${randomUUID()}.tmp`;
-    try {
-      await writeFile(temporary, JSON.stringify({ ...result, completedAt: new Date().toISOString() }), { flag: "wx", mode: 0o600 });
-      await rename(temporary, path); return true;
-    } catch { return false; }
-    finally { await rm(temporary, { force: true }).catch(() => {}); }
-  }
-}
-
-/** Sends only an already-approved, confirmed plan. Never evaluates, chooses recipients or retries. */
+/** Controlled, human-confirmed execution only. No generic/unattended send entry point. */
 export class GmailReplyExecutor implements EmailReplyExecutor {
-  readonly #attempted = new Set<string>();
   constructor(private readonly token: AccessTokenProvider, private readonly sender: string,
-    private readonly records = new LocalTestExecutionRecords(), private readonly fetcher: typeof fetch = fetch) {}
+    private readonly ledger: ActionLedger = new LocalActionLedger(), private readonly fetcher: typeof fetch = fetch) {}
   async execute(input: ApprovalReplyPlan): Promise<ReplyExecutionResult> {
+    consumeConfirmedTestPlan(input, this.sender);
     const plan = structuredClone(input);
     const raw = Buffer.from(buildReplyRfc(plan, this.sender)).toString("base64url");
-    if (this.#attempted.has(plan.actionId)) throw new Error("Duplicate reply action refused in this process");
-    this.#attempted.add(plan.actionId);
+    let record = await this.ledger.reserve({ actionId: plan.actionId, sourceKey: sourceKey(this.sender, plan.moderationMessageId), planDigest: digest(plan) });
     let token: string;
     try { token = await this.token(); if (!token) throw new Error(); }
-    catch { throw new Error("Send authorization failed before submission. Reauthorize the send token; no email was submitted."); }
-    const record = await this.records.reserve(plan, this.sender);
+    catch {
+      await this.ledger.transition(record, "FAILED_SAFE");
+      throw new Error("Send authorization failed before submission. No email submitted; FAILED_SAFE. No automatic retry.");
+    }
+    // Persist the possibility of an external effect BEFORE submitting the request.
+    record = await this.ledger.transition(record, "DISPATCHING");
+    const uncertain = async (detail: string): Promise<never> => {
+      let saved = false;
+      try { await this.ledger.transition(record, "UNCERTAIN"); saved = true; } catch { /* DISPATCHING still blocks all retries */ }
+      throw new Error(`Gmail send outcome UNKNOWN (${detail}). No retry. ${saved ? "UNCERTAIN recorded." : "Ledger update failed; reservation remains blocked."} Reconcile manually.`);
+    };
     let response: Response;
     try {
       response = await this.fetcher("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
         method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ raw, threadId: plan.threadId }), redirect: "error", signal: AbortSignal.timeout(30_000),
       });
-    } catch { throw new Error("Gmail send outcome UNKNOWN (network/timeout). No retry. Local reservation retained; check Gmail Sent and the test group manually."); }
-    if (!response.ok) throw new Error(`Gmail send returned HTTP ${response.status}. No retry; approval is not verified. Local reservation retained. Check Gmail Sent before any further test.${[401, 403].includes(response.status) ? " Check gmail.send authorization." : ""}`);
+    } catch { return uncertain("network/timeout"); }
+    if (!response.ok) return uncertain(`HTTP ${response.status}`);
     let data: { id?: unknown; threadId?: unknown };
     try { data = await response.json() as typeof data; }
-    catch { throw new Error("Gmail send outcome UNKNOWN: unreadable response. No retry; reservation retained. Check Gmail Sent manually."); }
-    if (!data || !gmailId(data.id) || !gmailId(data.threadId)) throw new Error("Gmail send outcome UNKNOWN: missing message/thread identity. No retry; reservation retained. Check Gmail Sent manually.");
-    const result = { actionId: plan.actionId, status: "SENT" as const, gmailMessageId: data.id, gmailThreadId: data.threadId };
-    return { ...result, recordSaved: await this.records.finish(record, result) };
+    catch { return uncertain("unreadable response"); }
+    if (!data || !gmailId(data.id) || !gmailId(data.threadId)) return uncertain("missing message/thread identity");
+    let recordSaved = false;
+    try { await this.ledger.transition(record, "SENT", { messageId: data.id, threadId: data.threadId }); recordSaved = true; }
+    catch { try { await this.ledger.transition(record, "UNCERTAIN"); } catch { /* blocked DISPATCHING survives */ } }
+    return { actionId: plan.actionId, status: "SENT", gmailMessageId: data.id, gmailThreadId: data.threadId, recordSaved };
   }
 }

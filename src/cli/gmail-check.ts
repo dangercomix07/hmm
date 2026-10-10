@@ -1,3 +1,4 @@
+import { gmailAccountEmail } from "../adapters/inbox/gmail-account.js";
 import { authenticateGmail } from "../adapters/auth/gmail-oauth.js";
 import { RealGmailClient } from "../adapters/inbox/real-gmail-client.js";
 import { GmailTransport } from "../adapters/inbox/gmail-transport.js";
@@ -37,7 +38,8 @@ export async function gmailCheck(args: string[]): Promise<number> {
   if (config.evaluator.provider !== "fake") throw new Error("gmail-check requires provider: fake; private email is not sent to an AI provider.");
   const groups = await loadGoogleGroupsConfig(options.get("--email-config") ?? "config/google-groups.local.yaml");
   const auth = await authenticateGmail(options.get("--credentials") ?? ".secrets/gmail-desktop.json", options.get("--token") ?? ".tokens/gmail.json");
-  const emails = await new GmailTransport(new RealGmailClient(auth.accessToken), auth.account).discover(groups.gmail_query);
+  const account = await gmailAccountEmail(auth.accessToken);
+  const emails = await new GmailTransport(new RealGmailClient(auth.accessToken), account).discover(groups.gmail_query);
   console.log(`hmm\nFound ${emails.length} moderation candidates\nREAD ONLY — NO EMAIL SENT`);
   let exitCode = 0;
   for (const raw of emails) {

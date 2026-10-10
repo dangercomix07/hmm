@@ -6,7 +6,8 @@ Use Node.js 22 or later and npm. From the repository root:
 npm ci
 npm test
 npm run typecheck
-npm run cli -- check fixtures/good-update.txt
+npm run config:check
+npm run cli -- check fixtures/work-updates-101/valid-concise.txt --config config/work-updates-101.yaml
 npm run cli -- check-email fixtures/google-groups/plain.eml
 ```
 
@@ -20,6 +21,11 @@ Email tests must stay offline. Use `.eml` and fake Gmail RAW fixtures, preserve 
 
 Preserve the `.eml` fixtures' CRLF bytes. The Gmail JSON fixtures encode those exact bytes, and `.gitattributes` disables checkout line-ending conversion for them. When transferring commits with mail patches, use `git am --keep-cr <patch-file>`: plain `git am` can strip carriage returns even when `.gitattributes` preserves them.
 
-Default to dry runs. Never test approval against arbitrary moderation queues. Follow the disposable-message test plan when real Google adapters exist.
+Default to dry runs. Never test approval against arbitrary moderation queues. Follow the disposable-message test plan using the supervised command.
 
 Licensing is undecided. Do not add a LICENSE, license metadata, or license headers.
+
+Automated development and validation are offline: do not enable real Gmail sending or use credentials in tests.
+`npm test` applies a loopback-only socket guard; OAuth tests use mocks and a local callback server.
+Read [the safety contract](docs/milestone5a-safety-foundations.md) before changing authentication,
+source identity, confirmation, ledger transitions, or transport failure classification.

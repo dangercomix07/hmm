@@ -166,8 +166,9 @@ test("dry run still evaluates with Jev but skips approvals and external writes",
   assert.deepEqual(approval.approvedIds, []);
 });
 
-test("provider factory preserves fake default and selects Jev; YAML never accepts API keys", () => {
-  assert.ok(createEvaluator(parseConfig("rules: []")) instanceof FakeEvaluator);
+test("provider factory defaults to disabled and explicitly selects fake or Jev; YAML never accepts API keys", () => {
+  assert.equal(parseConfig("rules: []").evaluator.provider, "none");
+  assert.ok(createEvaluator(parseConfig("rules: []\nevaluator: {provider: fake}")) instanceof FakeEvaluator);
   assert.ok(createEvaluator(config) instanceof JevEvaluator);
   assert.throws(() => parseConfig("rules: []\nevaluator: {provider: jev, api_key: forbidden}"));
 });

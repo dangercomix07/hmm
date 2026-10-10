@@ -1,4 +1,6 @@
+import type { ContentObservations } from "./content-observations.js";
 export interface Item {
+  contentObservations?: ContentObservations;
   id: string;
   author?: { name?: string; email?: string };
   subject?: string;

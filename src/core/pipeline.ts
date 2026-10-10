@@ -10,7 +10,7 @@ import { moderate } from "./moderate.js";
 
 export interface HmmOptions {
   inbox: Inbox;
-  evaluator: Evaluator;
+  evaluator?: Evaluator;
   approval?: ApprovalAdapter;
   store?: Store;
   notifier?: Notifier;

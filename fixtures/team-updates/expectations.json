@@ -1,0 +1,22 @@
+{
+  "useful-concise": "APPROVE",
+  "useful-detailed": "APPROVE",
+  "failed-experiment": "APPROVE",
+  "blocker-present": "APPROVE",
+  "no-blockers": "APPROVE",
+  "qualitative-no-numbers": "APPROVE",
+  "evidence-link": "APPROVE",
+  "vague": "APPROVE",
+  "unsupported-claim": "APPROVE",
+  "missing-next-steps": "REJECT",
+  "missing-progress": "REJECT",
+  "template-only": "REJECT",
+  "placeholder-heavy": "REVIEW",
+  "duplicate-section": "REVIEW",
+  "malformed-heading": "REVIEW",
+  "unusual-wording": "APPROVE",
+  "prompt-injection": "REJECT",
+  "long-rambling": "REJECT",
+  "terse-useful": "APPROVE",
+  "unknown-sections": "APPROVE"
+}

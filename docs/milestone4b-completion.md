@@ -1,5 +1,9 @@
 # Milestone 4B completion record
 
+> Historical development record. See the [current release](releases/v0.2.0-supervised-mvp.md)
+> and [current setup](supervised-moderation.md) instead of historical branch commands.
+
+
 Status: **controlled local experiment completed**, as confirmed by the user on 2026-10-10 (Asia/Kolkata). Baseline tag: `v0.1.0-milestone4b`.
 
 ## Observed result

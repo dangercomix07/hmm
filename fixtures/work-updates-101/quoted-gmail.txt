@@ -1,0 +1,7 @@
+Reproduced the reset.
+Next steps:
+Inspect the trace.
+
+On Tue, 6 Oct 2026, Alex <alex@example.com> wrote:
+> Previous update
+> Next steps: keep testing
