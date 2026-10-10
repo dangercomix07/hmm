@@ -27,13 +27,15 @@ export function readHeaderBlock(text: string): Record<string, string[]> {
   return headers;
 }
 
-export function mailboxes(value: string | undefined): Mailbox[] {
+export function mailboxes(value: string | undefined, allowEmptyGroups = false): Mailbox[] {
   if (value === undefined) return [];
   if (/[\r\n\u0000-\u001f\u007f]/.test(value)) throw new Error("Invalid address header");
   if (/[<>]/.test(value.replace(/<[^<>]*>/g, ""))) throw new Error("Unbalanced mailbox brackets");
   const addresses = addressParser(value);
   if (!addresses.length) throw new Error("Empty address header");
-  return addresses.map(address => {
+  return addresses.flatMap(address => {
+    // Empty RFC recipient groups are valid only in recipient headers, never sender/reply identity.
+    if (allowEmptyGroups && address.group?.length === 0) return [];
     if (address.group !== undefined || !address.address || !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(address.address)) {
       throw new Error("Unsupported or malformed mailbox");
     }
@@ -42,7 +44,7 @@ export function mailboxes(value: string | undefined): Mailbox[] {
       domain!.split(".").some(label => label.length > 63 || !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label))) throw new Error("Malformed mailbox");
     const name = decodeWords(address.name);
     if (/[\r\n\u0000-\u001f\u007f]/.test(name)) throw new Error("Invalid mailbox name");
-    return { name, address: address.address };
+    return [{ name, address: address.address }];
   });
 }
 
@@ -67,6 +69,10 @@ export function messageIds(value: string): string[] {
 
 export class MimeEmailParser implements EmailParser {
   async parse(raw: RawEmail): Promise<ParsedEmail> {
+    return this.parseMessage(raw, 0);
+  }
+
+  private async parseMessage(raw: RawEmail, depth: number): Promise<ParsedEmail> {
     if (!raw.id || !raw.source.account || raw.raw.length > MAX_EMAIL_BYTES) throw new Error("Invalid email identity or message exceeds 2 MiB");
     const bytes = Buffer.from(raw.raw);
     // Latin-1 preserves bytes for header structure checks; PostalMime decodes content.
@@ -101,7 +107,7 @@ export class MimeEmailParser implements EmailParser {
     if (replyTo.length > 1) throw new Error("Ambiguous Reply-To");
     const result: ParsedEmail = {
       id: raw.id, source: { ...raw.source }, headers, text: text || htmlText || "",
-      to: mailboxes(headers.to?.[0]), replyTo,
+      to: mailboxes(headers.to?.[0], true), replyTo,
       attachments: parsed.attachments.map(attachment => ({
         filename: attachment.filename, mimeType: attachment.mimeType,
         size: typeof attachment.content === "string" ? Buffer.byteLength(attachment.content) : attachment.content.byteLength,
@@ -113,6 +119,13 @@ export class MimeEmailParser implements EmailParser {
     if (headers["message-id"]?.[0]) result.messageId = headers["message-id"][0];
     if (headers["in-reply-to"]?.[0]) result.inReplyTo = headers["in-reply-to"][0];
     if (headers.references?.[0]) result.references = headers.references[0];
+    const inline = parsed.attachments.filter(attachment => attachment.mimeType === "message/rfc822" && attachment.disposition === "inline");
+    if (inline.length) {
+      if (depth !== 0 || inline.length !== 1 || parsed.attachments.length !== 1 || !/^multipart\/mixed(?:;|$)/i.test(headers["content-type"]?.[0] ?? "")) throw new Error("Unsupported or ambiguous inline original message");
+      const content = inline[0]!.content;
+      if (typeof content === "string") throw new Error("Unsupported inline message encoding");
+      result.inlineMessage = await this.parseMessage({ ...raw, raw: new Uint8Array(content) }, depth + 1);
+    }
     return result;
   }
 }

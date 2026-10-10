@@ -5,4 +5,3 @@ export interface GmailClient {
   listMessages(request: { q: string; pageToken?: string; maxResults: number }): Promise<GmailListPage>;
   getMessage(id: string, options: { format: "raw" }): Promise<GmailMessage>;
 }
-// A live client and OAuth are intentionally not implemented.

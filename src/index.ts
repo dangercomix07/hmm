@@ -32,3 +32,4 @@ export { GmailTransport, normalizeGmailMessage } from "./adapters/inbox/gmail-tr
 export type { RawEmail, ParsedEmail, ModerationEmail, EmailParser, ModerationParser } from "./adapters/email/types.js";
 export type { EmailActionPlan, ApprovalReplyPlan } from "./adapters/approval/email-action-plan.js";
 export type { GmailClient } from "./adapters/inbox/gmail-client.js";
+export { RealGmailClient } from "./adapters/inbox/real-gmail-client.js";

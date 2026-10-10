@@ -1,0 +1,11 @@
+# Copy to google-groups.local.yaml (ignored). No secrets belong in YAML.
+# Intended test group from the milestone brief; verify against the actual email.
+group_address: hmm-testing@googlegroups.com
+# Deliberately NOT a guessed Google sender. Replace after --inspect observation.
+notification_senders:
+  - replace-after-inspection@example.invalid
+# Replace with a distinctive substring from the observed notification subject.
+subject_contains: REPLACE_WITH_OBSERVED_SUBJECT
+# Initial discovery only: use a narrow Gmail search locating the two notifications.
+# Search results are candidates, never proof of notification origin or authenticity.
+gmail_query: '"hmm-testing" newer_than:30d'

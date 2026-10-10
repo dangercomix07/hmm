@@ -33,7 +33,7 @@ npm run cli -- check fixtures/technical-update.txt
 
 The first two print `REJECT`; the technical update prints `APPROVE`.
 
-The CLI always performs a dry run, even when `dry_run: false` is in the configuration. It never connects approval, email, or external storage adapters.
+The `check` and `check-email` commands always perform a dry run, even when `dry_run: false` is in the configuration. `gmail-check` remains read-only. The separate `approve-test` command can send one reply only with test sending enabled and exact interactive confirmation (see Milestone 4B below).
 
 Exit codes are **0** for `APPROVE`, **1** for `REJECT`, and **2** for `REVIEW`, invalid configuration, or input errors. A rejection exits nonzero on purpose so scripts can use the decision.
 
@@ -181,11 +181,23 @@ The good fixture returns `APPROVE` and a **non-executable** reply plan with the 
 
 Use `--config` for rules and `--email-config config/google-groups.example.yaml` for the group address, allowed notification senders, subject filter, and candidate search query. These are fixture settings, not universal Google addresses. Search matches and matching headers are not authentication.
 
-Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Attachments contribute metadata only; their contents do not go to the evaluator. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
+Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Ordinary attachments contribute metadata only; their contents do not go to the evaluator. The explicitly supported Google multipart notification can contain one inline `message/rfc822` original, whose validated author/subject/body become the item. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
 
-**No real Google account is connected. No message can currently be approved through Google.** The reply plan is marked `UNVERIFIED`; programmatic approval-by-reply still needs a disposable live test in a later milestone.
+This offline harness does not connect to Google. Its reply plan remains non-executable and marked `UNVERIFIED`. Separate live read-only and controlled-send commands are described below.
 
 See [integration boundaries, official sources, and limitations](docs/gmail-google-groups-integration.md), [the fixture index](fixtures/google-groups/README.md), and [the future manual test plan](docs/google-groups-manual-test.md).
+
+## Live Gmail read-only checks (Milestone 4A)
+
+`npm run cli -- gmail-check --inspect` reads a locally authorized Gmail account and prints decisions and non-executable plans. It requires a Desktop OAuth client and only `gmail.readonly`; the fake evaluator remains mandatory. No mail is sent, approved or modified. Existing `check-email` stays entirely offline.
+
+Follow the [Google OAuth and PowerShell setup guide](docs/gmail-readonly-setup.md). No credentials are needed for development or automated tests. A user-supplied real notification has been replayed successfully with explicit inline RFC822 support. Rerunning both live candidates locally remains necessary; see the setup guide for observed configuration values.
+
+## Controlled approval reply (Milestone 4B)
+
+`npm run cli -- approve-test <gmail-message-id>` re-fetches one explicitly selected notification, parses and evaluates it again, and offers a send only for APPROVE and the configured disposable test group. It displays the exact reply and requires typing `APPROVE TEST` in an interactive terminal. Reuse the existing client JSON and run with `--reauthorize` once to grant read+send permission. The sending config remains disabled by default. Local reservations prevent repeated test sends from this checkout; there are no automatic retries.
+
+Follow the [controlled reply setup and manual verification guide](docs/gmail-approval-test.md). Gmail send success alone does not prove Google Groups published the post. The user completed the local HMM TEST 003 experiment and manually confirmed publication; see the [completion record](docs/milestone4b-completion.md). No live API send was performed in the cloud.
 
 ## Progress and storage
 
@@ -218,10 +230,12 @@ tests/          unit, pipeline, and CLI checks
 
 1. Local core and fake-adapter workflow: implemented.
 2. Jev evaluator: implemented against the official SDK contract and tested with mocked HTTP; live fixture validation is pending API access and a key.
-3. Offline Gmail/Google Groups harness: implemented with real MIME parsing, synthetic fixtures, a fake Gmail client, and non-executable action plans. Live Gmail access and sender authentication are not implemented.
-4. Google Groups approval: verify one disposable message before enabling any real approval.
-5. Optional progress extraction, persistent storage, and summary primitives.
+3. Offline Gmail/Google Groups harness: implemented with bounded MIME parsing and synthetic regression fixtures.
+4. Live Gmail read-only integration: verified locally with real test-group notifications.
+5. Controlled Gmail approval reply: verified locally for one explicitly selected disposable post, with user-confirmed publication in Google Groups.
+6. Suggested next milestone: real Gmail input evaluated by Jev in read-only mode; assess judgments before connecting AI decisions to sending.
+7. Before unattended operation: trusted sender-authentication enforcement, a durable action ledger, and reconciliation of uncertain sends. Progress extraction, persistent reporting and summaries remain later work.
 
-Email action plans now have stable source-derived IDs, but there is no durable action ledger or cross-run deduplication. The existing general-purpose pipeline rejects duplicate IDs within a batch, but rerunning it can repeat enabled fake actions. Adapter failures propagate; actions are not retried. Real integrations still need idempotency and recovery before production use. The email harness has no executor at all.
+Stable ActionIds and local execution reservations protect the controlled test within the same checkout, including concurrent attempts and token reauthorization. They are not a production ledger and do not provide exactly-once execution across machines or separate notifications. The email check commands emit non-executable plans; only the explicitly confirmed `approve-test` command invokes the send executor. There is no scheduler or automatic approval loop.
 
 No dashboard, database server, agent framework, or licensing terms have been added.

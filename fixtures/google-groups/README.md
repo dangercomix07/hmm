@@ -25,3 +25,5 @@ All messages, identities, and content here are invented. These are RFC/MIME mess
 `gmail-messages.json` contains canned Gmail RAW-style responses for plain, vague, and ordinary messages. `id` and `threadId` are fake opaque identifiers. `raw` is base64url of the corresponding `.eml` bytes. The fake client returns these candidates regardless of the query; it records queries and exercises pagination, but does not emulate Gmail's search language.
 
 Expected decisions use the fake evaluator only. It is a pattern-based demo and is not a prompt-injection defense or a real assessment of these messages.
+
+`inline-original.eml` reproduces the structure of a user-observed Google multipart/mixed notification with an empty outer recipient group and one inline RFC822 original. All identities, message IDs and update text are synthetic; no private transport/authentication headers are retained. It is the explicit exception to ordinary attachment-content exclusion. The plain/HTML notification wrappers differ in fixed link/footer wording; the original alternatives agree.
