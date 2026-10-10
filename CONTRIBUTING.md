@@ -18,6 +18,8 @@ Keep dependencies minimal. `yaml` parses configuration. `postal-mime` handles RF
 
 Email tests must stay offline. Use `.eml` and fake Gmail RAW fixtures, preserve header-derived identity, and emit non-executable plans. Do not add OAuth, sending, or a live Jev call to `check-email`. See docs/gmail-google-groups-integration.md for the source format and boundary contracts.
 
+Preserve the `.eml` fixtures' CRLF bytes. The Gmail JSON fixtures encode those exact bytes, and `.gitattributes` disables checkout line-ending conversion for them. When transferring commits with mail patches, use `git am --keep-cr <patch-file>`: plain `git am` can strip carriage returns even when `.gitattributes` preserves them.
+
 Default to dry runs. Never test approval against arbitrary moderation queues. Follow the disposable-message test plan when real Google adapters exist.
 
 Licensing is undecided. Do not add a LICENSE, license metadata, or license headers.
