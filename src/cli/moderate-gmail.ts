@@ -43,21 +43,31 @@ export async function runSupervisedSession(session: SupervisedSession): Promise<
     throw new Error("moderate-gmail requires the deterministic WORK UPDATES 101 profile with provider: none.");
   }
   const candidates = await new GmailTransport(client, account).discover(groups.gmail_query);
-  display(`Found ${candidates.length} moderation candidates. Each send requires its own confirmation.`);
-  for (const raw of candidates) {
+  display(`\nhmm — Supervised Gmail moderation\n\nFound ${candidates.length} moderation candidates. Each send requires its own confirmation.\nSearch: ${quoted(groups.gmail_query)}\n`);
+  for (const [index, raw] of candidates.entries()) {
     const result = await checkEmail(raw, config, createEvaluator(config), new MimeEmailParser(), new GoogleGroupsParser(groups));
     const item = result.message?.item;
     display([
-      "--------------------------------------------------",
+      "\n" + "=".repeat(64),
+      `Candidate ${index + 1} of ${candidates.length}`,
+      "=".repeat(64),
+      "",
       `Gmail message ID: ${quoted(raw.id)}`,
       `Original author: ${quoted(item?.author?.email ?? "(unavailable)")}`,
       `Original subject: ${quoted(item?.subject ?? "(unavailable)")}`,
       `Group: ${quoted(result.message?.groupAddress ?? "(unavailable)")}`,
-      "Original update (each source line quoted):",
+      "",
+      "Original update (quoted):",
       ...(item?.body ?? "(unavailable)").split(/\r?\n/).map(line => "  " + quoted(line)),
+      "",
       `Decision: ${result.moderation.decision.status}`,
-      ...result.moderation.deterministic.map(r => `${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
-      ...result.moderation.decision.reasons.map(r => quoted(r.explanation)),
+      "",
+      "Checks:",
+      ...result.moderation.deterministic.map(r => r.result === "PASS" ? `  PASS ${r.ruleId}` : `  ${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
+      ...result.moderation.decision.reasons
+        .filter(reason => !result.moderation.deterministic.some(r => r.reason === reason.explanation))
+        .map(reason => "  " + quoted(reason.explanation)),
+      "",
     ].join("\n"));
     if (result.plan.kind !== "approval-reply") {
       display("External action: NONE — message remains pending.");
@@ -65,21 +75,27 @@ export async function runSupervisedSession(session: SupervisedSession): Promise<
     }
     const previous = await ledger.executionStatus(result.plan.reply.actionId, sourceKey(account, raw.id));
     if (previous) {
-      display(`Ledger: ${previous}. External action: NONE — this action cannot be resent.`);
+      display(`Ledger: ${previous}\nExternal action: NONE — this action cannot be resent.\n`);
       continue;
     }
     // Re-fetch and re-evaluate after displaying the update, immediately before confirmation.
     const prepared = await prepareSupervisedApproval(raw.id, client, account, config, groups, sending, notificationSnapshot(raw));
     if (digest(prepared.plan) !== digest(result.plan.reply)) throw new Error("Regenerated action plan or ActionId changed. No send.");
     if (prepared.testOnlyAuthenticationException) display(
-      "WARNING: Notification origin is not yet cryptographically trusted by hmm.\n" +
+      "\nWARNING: Notification origin is not yet cryptographically trusted by hmm.\n" +
       "This supervised mode relies on the configured Gmail mailbox, group allow-list, fresh re-fetch and explicit human confirmation."
     );
     // The existing executor reserves atomically after confirmation and before any send.
     // Cancellation must not create a permanent reservation for an unsent candidate.
     const receipt = await confirmTestApproval(prepared, account, executor, display, confirm);
     if (!receipt) { display("Cancelled. No email sent."); continue; }
-    display(`Reply sent. Ledger receipt: ${JSON.stringify(receipt)}\nPublication is NOT verified. Check Google Groups manually.`);
+    display([
+      "\nReply sent successfully.",
+      `Ledger: ${receipt.status} | Record saved: ${receipt.recordSaved ? "yes" : "NO"}`,
+      `Sent Gmail message: ${quoted(receipt.gmailMessageId)}`,
+      `Gmail thread: ${quoted(receipt.gmailThreadId)}`,
+      "Publication is NOT verified. Check Google Groups manually.\n",
+    ].join("\n"));
     if (!receipt.recordSaved || receipt.gmailThreadId !== prepared.plan.threadId) {
       throw new Error("Send requires manual reconciliation; do not resend. Session stopped.");
     }

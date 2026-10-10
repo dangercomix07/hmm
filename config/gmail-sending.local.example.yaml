@@ -4,7 +4,8 @@ sending:
   enabled: false
   test_only: true
   # Gmail raw headers have no proven ingress provenance yet. Default remains fail-closed.
-  # Enable this exception ONLY to reproduce the manually confirmed disposable-group test.
+  # Enable this exception only for an intentional supervised disposable-group test.
+  # Existing local files are not replaced by git pull. Keep every field shown here.
   test_only_allow_unverified_authentication: false
   allowed_groups:
     - hmm-testing@googlegroups.com

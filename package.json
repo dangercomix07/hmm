@@ -14,7 +14,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --import ./dist/tests/offline-guard.js --test dist/tests/*.test.js",
-    "cli": "npm run build --silent && node dist/src/cli/index.js"
+    "cli": "npm run build --silent && node dist/src/cli/index.js",
+    "config:check": "npm run build --silent && node dist/src/cli/index.js config-check"
   },
   "dependencies": {
     "google-auth-library": "^11.2.0",

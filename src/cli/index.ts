@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkConfigurations } from "./check-config.js";
 import { moderateGmail } from "./moderate-gmail.js";
 import { approveTest } from "./approve-test.js";
 import { gmailCheck } from "./gmail-check.js";
@@ -19,11 +20,18 @@ async function main(): Promise<void> {
     if (args.filter(a => a === "--verbose").length !== 1) throw new Error("Duplicate --verbose option");
     args.splice(args.indexOf("--verbose"), 1); verbose = true;
   }
+  if (args[0] === "config-check") {
+    if (args.length !== 1) throw new Error("Usage: hmm config-check");
+    const checked = await checkConfigurations();
+    console.log(checked.lines.join("\n"));
+    process.exitCode = checked.valid ? 0 : 2;
+    return;
+  }
   if (args[0] === "moderate-gmail") { await moderateGmail(args.slice(1)); return; }
   if (args[0] === "approve-test") { await approveTest(args.slice(1)); return; }
   if (args[0] === "gmail-check") { process.exitCode = await gmailCheck(args.slice(1)); return; }
   if (args.length === 1 && ["--help", "-h"].includes(args[0]!)) {
-    console.log("Usage: hmm moderate-gmail [--reauthorize] [--email-config <yaml-file>] [--sending-config <yaml-file>]\n       hmm check <file> [--config <yaml-file>] [--verbose]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\n       hmm gmail-check [--inspect] [--email-config <yaml-file>] [--config <yaml-file>] [--credentials <json-file>] [--token <json-file>]\n       hmm approve-test <gmail-message-id> [--reauthorize] [--sending-config <yaml-file>] [--email-config <yaml-file>] [--config <yaml-file>]\napprove-test can send ONE email after exact interactive confirmation. moderate-gmail discovers candidates and requires a separate interactive confirmation for each send. Other commands are dry-run only; check-email is offline and requires provider: fake or none. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
+    console.log("Usage: hmm config-check\n       hmm moderate-gmail [--reauthorize] [--email-config <yaml-file>] [--sending-config <yaml-file>]\n       hmm check <file> [--config <yaml-file>] [--verbose]\n       hmm check-email <eml-file> [--config <yaml-file>] [--email-config <yaml-file>]\n       hmm gmail-check [--inspect] [--email-config <yaml-file>] [--config <yaml-file>] [--credentials <json-file>] [--token <json-file>]\n       hmm approve-test <gmail-message-id> [--reauthorize] [--sending-config <yaml-file>] [--email-config <yaml-file>] [--config <yaml-file>]\napprove-test can send ONE email after exact interactive confirmation. moderate-gmail discovers candidates and requires a separate interactive confirmation for each send. Other commands are dry-run only; check-email is offline and requires provider: fake or none. Text checks with Jev use the network. Exit codes: 0 APPROVE, 1 REJECT, 2 REVIEW/error.");
     return;
   }
   if (!["check", "check-email"].includes(args[0] ?? "") || !args[1] || args.length % 2 !== 0) {

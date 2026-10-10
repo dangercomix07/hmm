@@ -104,3 +104,17 @@ reply. Re-run: A must show SENT and must not offer a second send. Do not delete 
 ledger to repeat the test. Record observations in the completion record without
 private email headers, tokens or bodies. Disable sending again when finished
 if you do not want the command available for further supervised tests.
+
+## Configuration audit and terminal layout
+
+Run `npm run config:check` after updating. It checks tracked examples and any
+local YAML present using the current schemas. See
+[the configuration reference](../config/README.md) for the current local settings.
+Examples now use the observed disposable-group sender and a one-day search;
+existing ignored local files must be edited on your own PC.
+
+The CLI separates numbered candidates, quoted source text, checks and action
+results with blank lines. PASS rows show short labels; failures retain their
+explanations without a duplicate reasons list. Exact reply details, authentication
+warnings and per-message confirmation remain visible. Send receipts are displayed
+as readable fields rather than a single JSON line.

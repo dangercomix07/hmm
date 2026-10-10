@@ -126,3 +126,22 @@ separate authentication headers. No private email or credentials were committed.
 Validation: 293 offline tests passed, typecheck passed, git diff --check passed.
 No live Gmail access or send, no new dependencies, no scheduler, no autonomous
 path, no merge, and no next-milestone work.
+
+## Configuration and terminal readability follow-up
+
+All seven tracked YAML configs were validated against current loaders. Legacy
+fake/Jev profiles now explicitly name the minimum_length check; profile behavior
+is unchanged. The live Groups example uses the observed disposable-group sender,
+subject and newer_than:1d query. The sending example includes all current fields
+and retains disabled-by-default sending/authentication exception.
+
+Added an offline config audit for tracked and locally present YAML, with paired
+group/reply checks and no credential reads or file mutation. No local Gmail YAML
+exists in the cloud workspace; the user's PC files cannot be audited remotely.
+The config reference provides the matching intentionally enabled local settings.
+
+Terminal output now separates numbered candidates, updates, checks and exact
+approval details. Passing checks are concise; duplicate failure explanations
+and the one-line JSON receipt were removed. Safety warnings and confirmation
+remain. Latest verification: 295 offline tests passed; typecheck, configuration
+audit and diff check passed. No live service calls or sends occurred.

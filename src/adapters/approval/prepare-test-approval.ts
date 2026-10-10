@@ -82,11 +82,11 @@ export function formatTestApproval(prepared: PreparedTestApproval, sender: strin
   const p = prepared.plan;
   // JSON quoting prevents terminal controls or newlines in email-provided text from faking the confirmation UI.
   const value = (label: string, text: string): string => `${label}: ${JSON.stringify(text).replace(/[\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, character => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`)}`;
-  return ["hmm", "TEST APPROVAL SEND", `Authentication: ${prepared.trust.status}`, ...(prepared.testOnlyAuthenticationException ? ["WARNING: TEST-ONLY UNVERIFIED AUTHENTICATION EXCEPTION. This notification is NOT TRUSTED."] : []), value("Group", prepared.group), value("Original author", prepared.author),
+  return ["", "-".repeat(64), "TEST APPROVAL SEND", "-".repeat(64), "", `Authentication: ${prepared.trust.status}`, ...(prepared.testOnlyAuthenticationException ? ["WARNING: TEST-ONLY UNVERIFIED AUTHENTICATION EXCEPTION. This notification is NOT TRUSTED."] : []), value("Group", prepared.group), value("Original author", prepared.author),
     value("Original subject", prepared.originalSubject), "Decision: APPROVE", value("From", sender), value("To", p.targetReplyAddress),
-    value("Reply subject", p.subject), value("In-Reply-To", p.inReplyTo), `References: ${JSON.stringify(p.references)}`,
+    "", value("Reply subject", p.subject), value("In-Reply-To", p.inReplyTo), `References: ${JSON.stringify(p.references)}`,
     value("Gmail message", p.moderationMessageId), value("Thread", p.threadId!), value("Action ID", p.actionId),
-    value("Reply body", p.body), "THIS WILL SEND ONE REAL EMAIL.", "Google Groups publication must be checked manually after sending."].join("\n");
+    "", value("Reply body", p.body), "", "THIS WILL SEND ONE REAL EMAIL.", "Google Groups publication must be checked manually after sending."].join("\n");
 }
 
 /** Only this boundary promotes a data-only plan after human confirmation. */
