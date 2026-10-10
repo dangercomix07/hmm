@@ -234,8 +234,16 @@ tests/          unit, pipeline, and CLI checks
 4. Live Gmail read-only integration: verified locally with real test-group notifications.
 5. Controlled Gmail approval reply: verified locally for one explicitly selected disposable post, with user-confirmed publication in Google Groups.
 6. Suggested next milestone: real Gmail input evaluated by Jev in read-only mode; assess judgments before connecting AI decisions to sending.
-7. Before unattended operation: trusted sender-authentication enforcement, a durable action ledger, and reconciliation of uncertain sends. Progress extraction, persistent reporting and summaries remain later work.
+7. Milestone 5A adds fail-closed authentication interfaces, a durable local action ledger and explicit reconciliation states. A proven production Gmail authentication provider and operational reconciliation remain blockers before unattended operation. Progress reporting remains later work.
 
-Stable ActionIds and local execution reservations protect the controlled test within the same checkout, including concurrent attempts and token reauthorization. They are not a production ledger and do not provide exactly-once execution across machines or separate notifications. The email check commands emit non-executable plans; only the explicitly confirmed `approve-test` command invokes the send executor. There is no scheduler or automatic approval loop.
+Versioned, mailbox-based ActionIds and an atomic durable local ledger protect the controlled test across restarts, concurrent attempts and token reauthorization. They do not provide exactly-once execution across machines or separate notifications. Legacy reservations remain blocking. The email check commands emit non-executable plans; only the explicitly confirmed `approve-test` command invokes the send executor. There is no scheduler or automatic approval loop.
 
 No dashboard, database server, agent framework, or licensing terms have been added.
+
+## Milestone 5A safety foundations
+
+See the [architecture, authentication contract, state machine, sources and compatibility notes](docs/milestone5a-safety-foundations.md)
+and [threat model](docs/threat-model.md). Raw Gmail headers are not proven authentication evidence:
+`approve-test` now fails closed by default. Reproducing the 4B disposable-group experiment requires
+the explicitly named, visibly warned test-only authentication exception; it never grants TRUSTED.
+There is no scheduler or autonomous sender. `npm test` is offline with a loopback-only network guard.

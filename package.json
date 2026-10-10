@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test dist/tests/*.test.js",
+    "test": "npm run build && node --import ./dist/tests/offline-guard.js --test dist/tests/*.test.js",
     "cli": "npm run build --silent && node dist/src/cli/index.js"
   },
   "dependencies": {

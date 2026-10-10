@@ -1,5 +1,14 @@
 # Milestone 4B: one controlled Gmail approval reply
 
+> Milestone 5A update: default execution now requires proven authentication evidence, which the
+> raw Gmail adapter cannot yet supply. To reproduce this **disposable-group, manually confirmed**
+> experiment only, set `sending.test_only_allow_unverified_authentication: true` explicitly in
+> the local sending YAML, then restore it to false after testing. The command warns that origin
+> remains INDETERMINATE. No malformed/failed authentication evidence is bypassed. Keep `.hmm/actions`:
+> its legacy records and new durable journal block repeats. See the
+> [5A contract](milestone5a-safety-foundations.md) before using this historical procedure.
+
+
 `approve-test` is the first command that can send a real email. It sends one reply to one explicitly selected Gmail notification after fresh parsing/evaluation and an exact interactive confirmation. `check`, `check-email` and `gmail-check` retain their dry-run/read-only behavior. The evaluator and policy do not send mail.
 
 Milestone 4B is complete for the controlled disposable-group experiment. The user ran `approve-test` locally for **HMM TEST 003**, confirmed the send, and then confirmed that Google Groups published the selected post. The supplied CLI output reports `SENT`, a returned Gmail thread matching the selected notification, and `recordSaved: true`. This is user-verified publication after a Gmail API send, not automatic Groups verification. No live send was attempted in Codex cloud. See the [milestone completion record](milestone4b-completion.md).

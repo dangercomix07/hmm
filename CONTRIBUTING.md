@@ -23,3 +23,8 @@ Preserve the `.eml` fixtures' CRLF bytes. The Gmail JSON fixtures encode those e
 Default to dry runs. Never test approval against arbitrary moderation queues. Follow the disposable-message test plan when real Google adapters exist.
 
 Licensing is undecided. Do not add a LICENSE, license metadata, or license headers.
+
+Milestone 5A development is offline: do not enable real Gmail sending or use credentials in tests.
+`npm test` applies a loopback-only socket guard; OAuth tests use mocks and a local callback server.
+Read [the safety contract](docs/milestone5a-safety-foundations.md) before changing authentication,
+source identity, confirmation, ledger transitions, or transport failure classification.

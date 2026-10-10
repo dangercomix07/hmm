@@ -24,8 +24,8 @@ export async function approveTest(args: string[]): Promise<void> {
   if (!sending.enabled || !sending.allowed_groups.some(group => group.toLowerCase() === groups.group_address.toLowerCase())) throw new Error("Enable the dedicated test sending config for the explicitly allowed test group first");
   if (config.evaluator.provider !== "fake") throw new Error("approve-test requires provider: fake");
   const readAuth = await authenticateGmail(".secrets/gmail-desktop.json", ".tokens/gmail.json", undefined, reauthorize ? "read-send" : "readonly", reauthorize);
-  const prepared = await prepareTestApproval(args[0]!, new RealGmailClient(readAuth.accessToken), readAuth.account, config, groups, sending);
   const sender = await gmailAccountEmail(readAuth.accessToken);
+  const prepared = await prepareTestApproval(args[0]!, new RealGmailClient(readAuth.accessToken), sender, config, groups, sending);
   // Both commands share the client and token; read commands still have no send path.
   const sendAuth = reauthorize ? readAuth : await authenticateGmail(".secrets/gmail-desktop.json", ".tokens/gmail.json", undefined, "read-send");
   const sendAccount = await gmailAccountEmail(sendAuth.accessToken);

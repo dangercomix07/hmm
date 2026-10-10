@@ -33,3 +33,8 @@ export type { RawEmail, ParsedEmail, ModerationEmail, EmailParser, ModerationPar
 export type { EmailActionPlan, ApprovalReplyPlan } from "./adapters/approval/email-action-plan.js";
 export type { GmailClient } from "./adapters/inbox/gmail-client.js";
 export { RealGmailClient } from "./adapters/inbox/real-gmail-client.js";
+
+export type { ActionLedger, ActionIdentity, ActionRecord, ActionState, ReconciliationResult } from "./ports/action-ledger.js";
+export type { AuthenticationPolicy, AuthenticationEvidenceProvider, AuthenticationAttestation, NotificationTrust } from "./ports/notification-authentication.js";
+export { LocalActionLedger } from "./adapters/ledger/local-action-ledger.js";
+export { verifyNotificationAuthentication, defaultAuthenticationPolicy } from "./adapters/email/notification-authentication.js";

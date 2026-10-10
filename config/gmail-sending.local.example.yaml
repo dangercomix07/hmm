@@ -3,6 +3,9 @@
 sending:
   enabled: false
   test_only: true
+  # Gmail raw headers have no proven ingress provenance yet. Default remains fail-closed.
+  # Enable this exception ONLY to reproduce the manually confirmed disposable-group test.
+  test_only_allow_unverified_authentication: false
   allowed_groups:
     - hmm-testing@googlegroups.com
   allowed_reply_addresses:
