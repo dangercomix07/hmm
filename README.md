@@ -276,3 +276,13 @@ It checks usable text, placeholder-only required content, code blocks of at most
 quoted previous-thread history, and MIME inline-image attachment coverage. It does not judge
 writing quality or meaningful progress. The default team profile remains unchanged.
 See the [WORK UPDATES 101 guide](docs/work-updates-101.md) for matching rules and REVIEW cases.
+
+### Supervised Gmail moderation
+
+`npm run cli -- moderate-gmail` connects Gmail discovery to the WORK UPDATES 101
+deterministic checks and a separate exact human confirmation for each approval.
+REJECT and REVIEW send nothing. This requires your existing local OAuth setup,
+explicit group/reply allow-lists and the documented test-only authentication
+exception. Start with the disposable test group.
+See [setup and live acceptance steps](docs/supervised-moderation.md) and the
+[completion record](docs/minimal-live-moderation-completion.md).

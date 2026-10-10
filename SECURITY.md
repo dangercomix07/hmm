@@ -52,3 +52,15 @@ requirements remain REVIEW when evaluation is disabled. Update content cannot ch
 feedback templates or source-derived execution identity. Human feedback never generates work
 or measurements on the engineer's behalf. The offline pre-check has no send adapter; it does
 not waive any authentication, ledger, confirmation or uncertain-action invariant above.
+
+## Supervised deterministic Gmail command
+
+`moderate-gmail` uses WORK UPDATES 101 with provider none and no semantic rules.
+Each approval re-fetches and compares the full raw notification and Gmail
+identity against the inspected candidate, repeats validation and evaluation,
+and compares the regenerated immutable reply plan before exact confirmation.
+It reuses the existing single-use capability, authentication exception, allow-list
+and durable executor. All ledger states block re-sending. Cancellation reserves
+nothing; reservation and DISPATCHING persist before a send request. No
+unattended mode or force-approval option exists. A rule APPROVE alone is never
+execution permission. Raw Gmail auth provenance remains unverified.

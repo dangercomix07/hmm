@@ -1,13 +1,13 @@
 import { verifyNotificationAuthentication, defaultAuthenticationPolicy } from "../email/notification-authentication.js";
 import type { AuthenticationEvidenceProvider, AuthenticationPolicy, NotificationTrust } from "../../ports/notification-authentication.js";
 import { singleMailbox } from "../email/mime-parser.js";
-import { sourceKey, actionIdFor } from "./action-identity.js";
+import { sourceKey, actionIdFor, digest } from "./action-identity.js";
 import type { Config } from "../../config/types.js";
 import type { GmailClient } from "../inbox/gmail-client.js";
 import type { GoogleGroupsConfig } from "../email/google-groups-config.js";
 import { moderateItem } from "../../core/moderate.js";
 import { buildEmailActionPlan } from "./email-action-plan.js";
-import type { ModerationEmail } from "../email/types.js";
+import type { RawEmail, ModerationEmail } from "../email/types.js";
 import { normalizeGmailMessage } from "../inbox/gmail-transport.js";
 import { MimeEmailParser } from "../email/mime-parser.js";
 import { GoogleGroupsParser } from "../email/google-groups-parser.js";
@@ -31,15 +31,31 @@ export function consumeConfirmedTestPlan(plan: ApprovalReplyPlan, account: strin
 export interface PreparedTestApproval { trust: NotificationTrust; testOnlyAuthenticationException: boolean; plan: ApprovalReplyPlan; group: string; author: string; originalSubject: string }
 export async function prepareTestApproval(id: string, client: GmailClient, account: string, config: Config,
   groups: GoogleGroupsConfig, sending: TestSendingConfig, authentication: { policy: AuthenticationPolicy; provider?: AuthenticationEvidenceProvider } = { policy: defaultAuthenticationPolicy }): Promise<PreparedTestApproval> {
+  return prepareApproval(id, client, account, config, groups, sending, authentication, "fake");
+}
+
+/** Bind fresh bytes, Gmail identity and regenerated plan to the candidate the human inspected. */
+export function notificationSnapshot(raw: RawEmail): string {
+  return digest([raw.id, raw.threadId, raw.source, Buffer.from(raw.raw).toString("base64")]);
+}
+export async function prepareSupervisedApproval(id: string, client: GmailClient, account: string, config: Config,
+  groups: GoogleGroupsConfig, sending: TestSendingConfig, expectedSnapshot: string): Promise<PreparedTestApproval> {
+  return prepareApproval(id, client, account, config, groups, sending, { policy: defaultAuthenticationPolicy }, "none", expectedSnapshot);
+}
+async function prepareApproval(id: string, client: GmailClient, account: string, config: Config,
+  groups: GoogleGroupsConfig, sending: TestSendingConfig,
+  authentication: { policy: AuthenticationPolicy; provider?: AuthenticationEvidenceProvider },
+  provider: "fake" | "none", expectedSnapshot?: string): Promise<PreparedTestApproval> {
   validateSelectedId(id);
   const guard = validateTestSendingConfig({ sending });
   if (!guard.enabled || guard.test_only !== true) throw new Error("Test sending is disabled; explicitly enable the dedicated test-only config");
   if (!guard.allowed_groups.some(group => group.toLowerCase() === groups.group_address.toLowerCase())) throw new Error("Configured group is not the explicitly allowed test group");
-  if (config.evaluator.provider !== "fake") throw new Error("approve-test requires provider: fake for this controlled actuator test");
+  if (config.evaluator.provider !== provider || (provider === "none" && config.rules.some(rule => rule.type !== "deterministic"))) throw new Error(`Supervised preparation requires provider: ${provider} and the supported rules`);
   if (singleMailbox(account, "account").address !== account) throw new Error("Verified mailbox identity required");
   const fetched = await client.getMessage(id, { format: "raw" });
   if (fetched.id !== id) throw new Error("Fetched Gmail message does not match the explicitly selected ID");
   const raw = normalizeGmailMessage(fetched, account);
+  if (expectedSnapshot !== undefined && notificationSnapshot(raw) !== expectedSnapshot) throw new Error("Selected notification changed since inspection. REVIEW; no send.");
   let message: ModerationEmail;
   try { message = await new GoogleGroupsParser(groups).parse(await new MimeEmailParser().parse(raw)); }
   catch { throw new Error("Send refused: fresh decision is REVIEW, plan is moderator-review. Unsupported or ambiguous notification."); }
