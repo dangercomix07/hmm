@@ -10,6 +10,6 @@ export interface Policy {
 export interface Config {
   dry_run: boolean;
   policy: Policy;
-  evaluator: { provider: "fake"; timeout_ms: number };
+  evaluator: { provider: "fake" | "jev"; timeout_ms: number };
   rules: Rule[];
 }

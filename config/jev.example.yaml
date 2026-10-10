@@ -1,0 +1,26 @@
+# Set TYPESAFE_API_KEY in your environment, never here.
+# Dry run still sends the input to TypeSafe for evaluation.
+dry_run: true
+policy:
+  default_action: review
+  fail_required_rule:
+    action: reject
+  uncertain_rule:
+    action: review
+  min_confidence: 0.8
+evaluator:
+  provider: jev
+  timeout_ms: 10000
+rules:
+  - id: minimum_length
+    type: deterministic
+    required: true
+    min_chars: 100
+  - id: real_progress
+    type: semantic
+    required: true
+    instruction: Determine whether the update describes concrete work, learning, evidence, or progress.
+  - id: next_steps
+    type: semantic
+    required: true
+    instruction: Determine whether the update identifies concrete next actions.

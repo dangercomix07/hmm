@@ -94,7 +94,7 @@ test("config supplies safe defaults and rejects typos, unsafe actions, duplicate
     "rules: []\npolicy: {default_action: approve}",
     "rules: []\npolicy: {uncertain_rule: {action: approve}}",
     "rules: []\npolicy: {min_confidence: 2}",
-    "rules: []\nevaluator: {provider: jev}",
+    "rules: []\nevaluator: {provider: unknown}",
     "rules: []\nevaluator: {timeout_ms: 0}",
   ]) assert.throws(() => parseConfig(text));
   assert.throws(() => validateConfig({ ...config, rules: [config.rules[0], config.rules[0]] }));

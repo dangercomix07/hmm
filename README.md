@@ -10,7 +10,7 @@ input → parser → rules → decision → action
 
 Normal TypeScript code decides what happens. An evaluator answers questions; it never controls actions. The core knows nothing about Gmail or Google Groups.
 
-Milestone 1 is implemented: a local CLI, a pure decision engine, YAML configuration, fake adapters, fixtures, and tests. No external accounts or keys are needed. Installing dependencies needs npm access; running the installed tool and tests does not need internet access.
+The local CLI, decision engine, YAML configuration, fake adapters, and fixtures work without external accounts. An optional Jev evaluator adds real semantic evaluation through TypeSafe. The default fake workflow and automated tests need no API key or network after dependencies are installed. A fresh dependency install needs npm access; a fully populated npm cache can also support `npm ci --offline`.
 
 ## Quick start
 
@@ -84,7 +84,7 @@ Semantic results need a confidence value per rule or an overall confidence value
 
 ## AI evaluators
 
-Only `provider: fake` is available. **The fake evaluator is a demo, not an AI assessment.** It ignores free-form instructions and recognizes two rule IDs:
+`provider: fake` remains the default. **The fake evaluator is an offline demo, not an AI assessment.** It ignores free-form instructions and recognizes two rule IDs:
 
 - `real_progress`: a listed concrete-work verb and a number must appear in the text.
 - `next_steps`: a `Next steps:` section must start with a listed action verb and contain at least five words.
@@ -93,24 +93,48 @@ These patterns are intentionally easy to fool. Their confidence of 1 only indica
 
 Implement the `Evaluator` interface to replace this behavior. The core validates results and supplies an abort signal for timeouts. Providers should honor the signal. A timeout prevents approval even if a provider ignores cancellation; the underlying request might still finish.
 
-Jev is the next milestone. Its actual API contract, authentication, and response format must be established before implementation. Gemini is also a future adapter. There are no pretend API integrations or keys to configure today.
+`provider: jev` uses TypeSafe's real API. Each semantic rule becomes a named yes/no question using its instruction; arbitrary rule IDs work without code changes. Get a key from [TypeSafe Console](https://console.typesafe.ai) and set **`TYPESAFE_API_KEY`**, the variable used by the official SDK (not `JEV_API_KEY`). Never put a key in YAML or Git.
+
+In Bash, enter it without saving the value in shell history:
+
+```bash
+read -rsp 'TypeSafe API key: ' TYPESAFE_API_KEY; echo
+export TYPESAFE_API_KEY
+```
+
+In PowerShell 7:
+
+```powershell
+$env:TYPESAFE_API_KEY = Read-Host 'TypeSafe API key' -MaskInput
+```
+
+Then select the Jev example configuration:
+
+```bash
+npm run cli -- check fixtures/good-update.txt --config config/jev.example.yaml
+```
+
+Jev returns `p`, the probability that the requirement holds. The adapter maps `p > 0.5` to `PASS` with confidence `p`, `p < 0.5` to `FAIL` with confidence `1 - p`, and an exact tie to `UNCERTAIN`. The existing policy then applies `min_confidence` (default 0.8): a tentative pass or fail below that confidence becomes `REVIEW`. This conversion uses the probability of the selected answer, not a separate Jev confidence score. It is not a guarantee that the answer is correct.
+
+Jev does not generate explanations. The displayed reason reports the yes probability. Missing keys, network errors, timeouts, HTTP errors, and invalid or incomplete answers lead to `REVIEW`; there is no fallback to fake judgments or automatic retry. See [the API mapping and manual test notes](docs/jev-evaluator.md) for official sources and current live-test status.
 
 ## Using the pipeline
 
 ```ts
 import {
-  createHmm, loadConfig, FakeInbox, FakeEvaluator,
+  createHmm, loadConfig, FakeInbox, createEvaluator,
   FakeApprovalAdapter, MemoryStore, ConsoleNotifier,
 } from "./src/index.js";
 
+const config = await loadConfig("config/example.yaml");
 const hmm = createHmm({
-  config: await loadConfig("config/example.yaml"),
+  config,
   inbox: new FakeInbox([{
     id: "demo-001",
     format: "text",
     body: "Your update here",
   }]),
-  evaluator: new FakeEvaluator(),
+  evaluator: createEvaluator(config),
   approval: new FakeApprovalAdapter(),
   store: new MemoryStore(),
   notifier: new ConsoleNotifier(),
@@ -125,7 +149,9 @@ The inbox, evaluator, approval adapter, store, and notifier are replaceable. Sto
 
 The pipeline honors `dry_run: true`: it skips approval and adapters marked `scope: external`. Local stores and console notifications still work. The only supplied approval adapter records IDs in memory; it never sends anything.
 
-Adapters are trusted code. Their `scope` declaration must accurately describe their effects. Dry run is an application guard, not a sandbox for arbitrary adapter code. Evaluator calls can still send input to a configured provider in future integrations.
+**Dry run does not mean offline.** With `provider: jev`, the full normalized item and semantic rule instructions are sent to TypeSafe for evaluation, which may incur API charges. Approval, external notifications, and external storage writes remain disabled. With `provider: fake`, evaluation stays offline.
+
+Adapters are trusted code. Their `scope` declaration must accurately describe their effects. Dry run is an application guard, not a sandbox for arbitrary adapter code.
 
 An approval adapter is only called when dry run is explicitly disabled and the decision is `APPROVE`. `REJECT` and `REVIEW` never call it. Rejection means withholding approval, not deleting or rejecting a message through an external API.
 
@@ -146,7 +172,7 @@ npm test
 npm run typecheck
 ```
 
-Tests cover policy outcomes, deterministic rules, config validation, parsing, provider failures and timeouts, malformed results, dry-run isolation, fake approval, storage, and CLI exit codes. They use no Google accounts, API keys, or external requests. GitHub Actions runs the same checks on pushes and pull requests.
+Tests cover policy outcomes, deterministic rules, config validation, parsing, provider failures and timeouts, malformed results, dry-run isolation, fake approval, storage, and CLI exit codes. Jev HTTP calls are mocked, including duplicate answers, invalid probabilities, HTTP errors, and cancellation. Tests use no Google accounts, API keys, or external requests. GitHub Actions runs the same checks on pushes and pull requests. Live Jev fixture checks are manual only.
 
 ## Project structure
 
@@ -165,7 +191,7 @@ tests/          unit, pipeline, and CLI checks
 ## Current limitations and next milestones
 
 1. Local core and fake-adapter workflow: implemented.
-2. Jev evaluator: pending a verified provider API contract; use fixtures first.
+2. Jev evaluator: implemented against the official SDK contract and tested with mocked HTTP; live fixture validation is pending API access and a key.
 3. Gmail inbox: future dry-run-only integration, with real MIME parsing and sender validation.
 4. Google Groups approval: verify one disposable message before enabling any real approval.
 5. Optional progress extraction, persistent storage, and summary primitives.

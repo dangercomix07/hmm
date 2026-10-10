@@ -6,6 +6,8 @@ export { evaluateDeterministicRules } from "./core/deterministic-rules.js";
 export { loadConfig, parseConfig, validateConfig } from "./config/load-config.js";
 export { FakeInbox } from "./adapters/inbox/fake-inbox.js";
 export { FakeEvaluator } from "./adapters/evaluators/fake-evaluator.js";
+export { JevEvaluator } from "./adapters/evaluators/jev-evaluator.js";
+export { createEvaluator } from "./adapters/evaluators/create-evaluator.js";
 export { FakeApprovalAdapter } from "./adapters/approval/fake-approval.js";
 export { MemoryStore } from "./adapters/storage/memory-store.js";
 export { ConsoleNotifier } from "./adapters/notifications/console-notifier.js";

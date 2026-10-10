@@ -48,7 +48,8 @@ export function validateConfig(input: unknown): Config {
   };
   const evaluator = object(root.evaluator ?? {}, "evaluator");
   keys(evaluator, ["provider", "timeout_ms"], "evaluator");
-  if ((evaluator.provider ?? "fake") !== "fake") throw new Error("Only the fake evaluator is implemented");
+  const provider = evaluator.provider ?? "fake";
+  if (provider !== "fake" && provider !== "jev") throw new Error("Unsupported evaluator provider");
   const timeout = number(evaluator.timeout_ms ?? 10000, 1, 2147483647, "timeout_ms");
   if (!Number.isInteger(timeout)) throw new Error("timeout_ms must be an integer");
   if (!Array.isArray(root.rules)) throw new Error("rules must be an array");
@@ -91,7 +92,7 @@ export function validateConfig(input: unknown): Config {
       default: throw new Error(`${id}: unknown deterministic check`);
     }
   });
-  return { dry_run: root.dry_run ?? true, policy, evaluator: { provider: "fake", timeout_ms: timeout }, rules };
+  return { dry_run: root.dry_run ?? true, policy, evaluator: { provider, timeout_ms: timeout }, rules };
 }
 
 export function parseConfig(text: string): Config {
