@@ -1,12 +1,19 @@
-# hmm
+<p>
+  <img src="assets/hmm!.png" alt="hmm!" width="140" />
+</p>
 
-hmm checks engineering updates against explicit rules and helps a human moderator
-approve supported Google Groups posts through Gmail. **0.2.0 — Supervised MVP**
-consolidates the completed milestones.
+# hmm!
 
-The main workflow uses deterministic WORK UPDATES 101 checks. No AI subscription
-or API key is required. Passing does not prove truth, meaningful progress or
-engineering quality.
+**Deterministic moderation for engineering updates.**
+
+`hmm!` checks updates against explicit rules and helps a human moderator approve
+supported Google Groups posts through Gmail.
+
+**v0.2.0 — Supervised MVP**
+
+The default workflow uses deterministic **WORK UPDATES 101** checks. No AI
+subscription or API key is required. Passing means the configured checks passed;
+it does not establish truth, meaningful progress, or engineering quality.
 
 ## Quick start
 
