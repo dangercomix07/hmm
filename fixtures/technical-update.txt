@@ -1,0 +1,10 @@
+Estimator benchmark
+
+Completed:
+Tested 40 large-angle image pairs and measured a 15 percent reduction in orientation error with the robust estimator. The baseline and candidate ran on the same input sequences.
+
+Blockers:
+The testbed camera mount still moves during high-speed runs.
+
+Next steps:
+Compare both estimators on 20 low-light sequences before choosing the default.

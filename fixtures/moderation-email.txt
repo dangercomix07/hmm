@@ -1,0 +1,11 @@
+Moderation-ID: fixture-moderation-001
+From: Alex Example <alex@example.com>
+Subject: Camera calibration | Testbed
+
+--- BEGIN ORIGINAL UPDATE ---
+Completed:
+Calibrated the camera using 24 reference images. Reduced average reprojection error from 2.4 pixels to 0.7 pixels and documented the measurement procedure.
+
+Next steps:
+Benchmark the robust estimator against 30 large-angle images on Tuesday.
+--- END ORIGINAL UPDATE ---

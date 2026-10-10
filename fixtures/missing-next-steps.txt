@@ -1,0 +1,3 @@
+Pose estimation integration
+
+Implemented the new camera interface and tested it against 12 recorded sequences. Measured a median latency of 18 milliseconds with no dropped frames. The integration notes now include the test results.

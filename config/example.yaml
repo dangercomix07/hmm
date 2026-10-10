@@ -1,0 +1,24 @@
+dry_run: true
+policy:
+  default_action: review
+  fail_required_rule:
+    action: reject
+  uncertain_rule:
+    action: review
+  min_confidence: 0.8
+evaluator:
+  provider: fake
+  timeout_ms: 10000
+rules:
+  - id: minimum_length
+    type: deterministic
+    required: true
+    min_chars: 100
+  - id: real_progress
+    type: semantic
+    required: true
+    instruction: Describe concrete work, learning, evidence, or progress.
+  - id: next_steps
+    type: semantic
+    required: true
+    instruction: Identify concrete next actions.

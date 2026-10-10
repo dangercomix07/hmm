@@ -1,0 +1,17 @@
+{
+  "name": "hmm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small configurable rules checker and gatekeeper",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "hmm": "dist/src/cli/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "cli": "npm run build --silent && node dist/src/cli/index.js"
+  },
+  "dependencies": { "yaml": "^2.8.1" },
+  "devDependencies": { "@types/node": "^24.0.0", "typescript": "^5.9.0" }
+}
