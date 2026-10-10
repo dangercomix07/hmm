@@ -157,9 +157,35 @@ An approval adapter is only called when dry run is explicitly disabled and the d
 
 ## Google Groups example
 
-The repository includes a **synthetic** moderation envelope in [fixtures/moderation-email.txt](fixtures/moderation-email.txt). The parser extracts its author, subject, original body, and moderation ID. Tests exercise this envelope through fake adapters. It is not a verified representation of real Google Groups email or a MIME/Gmail parser.
+The offline email harness parses realistic synthetic RFC/MIME notifications and shows an action plan:
 
-Gmail inbox discovery and Google Groups approval-by-reply are not implemented. Whether programmatic reply actually approves a message is unverified. See [the manual integration plan](docs/google-groups-manual-test.md) before implementing or enabling real approval.
+```bash
+npm run cli -- check-email fixtures/google-groups/plain.eml
+```
+
+```text
+Gmail-shaped fixture or .eml file
+  ↓
+RawEmail → MIME parser → Google Groups parser
+  ↓
+Item → rules → evaluator → existing decision policy
+  ↓
+Decision → ActionPlan (data only)
+```
+
+Raw email means the message bytes received from the transport. Parsed email means decoded headers and readable text. The Google Groups parser extracts the member's original update; `Item` is the same generic object used by the core. An ActionPlan describes an intended action without executing it.
+
+The good fixture returns `APPROVE` and a **non-executable** reply plan with the recipient, subject, threading metadata, and stable action ID. `vague.eml` returns `REJECT` with no approval reply. `ambiguous.eml` returns `REVIEW`. Missing critical reply metadata requires review even if the content passed.
+
+`check-email` is always offline and only accepts `provider: fake`. It cannot send email or write external storage, even if a supplied config sets `dry_run: false`. Existing `check <text-file>` behavior is unchanged, including optional Jev evaluation.
+
+Use `--config` for rules and `--email-config config/google-groups.example.yaml` for the group address, allowed notification senders, subject filter, and candidate search query. These are fixture settings, not universal Google addresses. Search matches and matching headers are not authentication.
+
+Plain text, HTML text extraction, multipart messages, encoded headers, UTF-8, quoted-printable, and base64 are covered. Attachments contribute metadata only; their contents do not go to the evaluator. Ambiguous forwards and conflicting text/HTML alternatives require review. The original simplified [moderation-email.txt](fixtures/moderation-email.txt) remains supported for Milestone 1 compatibility.
+
+**No real Google account is connected. No message can currently be approved through Google.** The reply plan is marked `UNVERIFIED`; programmatic approval-by-reply still needs a disposable live test in a later milestone.
+
+See [integration boundaries, official sources, and limitations](docs/gmail-google-groups-integration.md), [the fixture index](fixtures/google-groups/README.md), and [the future manual test plan](docs/google-groups-manual-test.md).
 
 ## Progress and storage
 
@@ -172,7 +198,7 @@ npm test
 npm run typecheck
 ```
 
-Tests cover policy outcomes, deterministic rules, config validation, parsing, provider failures and timeouts, malformed results, dry-run isolation, fake approval, storage, and CLI exit codes. Jev HTTP calls are mocked, including duplicate answers, invalid probabilities, HTTP errors, and cancellation. Tests use no Google accounts, API keys, or external requests. GitHub Actions runs the same checks on pushes and pull requests. Live Jev fixture checks are manual only.
+Tests cover policy outcomes, deterministic rules, config validation, parsing, provider failures and timeouts, malformed results, dry-run isolation, fake approval, storage, and CLI exit codes. The email tests cover MIME fixtures, fake Gmail discovery, conservative source extraction, reply plans, stable IDs, and untrusted content. Jev HTTP calls are mocked, including duplicate answers, invalid probabilities, HTTP errors, and cancellation. Tests use no Google accounts, API keys, or external requests. GitHub Actions runs the same checks on pushes and pull requests. Live Jev fixture checks are manual only.
 
 ## Project structure
 
@@ -192,10 +218,10 @@ tests/          unit, pipeline, and CLI checks
 
 1. Local core and fake-adapter workflow: implemented.
 2. Jev evaluator: implemented against the official SDK contract and tested with mocked HTTP; live fixture validation is pending API access and a key.
-3. Gmail inbox: future dry-run-only integration, with real MIME parsing and sender validation.
+3. Offline Gmail/Google Groups harness: implemented with real MIME parsing, synthetic fixtures, a fake Gmail client, and non-executable action plans. Live Gmail access and sender authentication are not implemented.
 4. Google Groups approval: verify one disposable message before enabling any real approval.
 5. Optional progress extraction, persistent storage, and summary primitives.
 
-There is no durable action ledger or cross-run deduplication. Duplicate IDs are rejected within a batch, but rerunning a batch can repeat enabled actions. Adapter failures propagate; actions are not retried. An action can succeed before a later store or notification fails. Real integrations need idempotency and recovery before production use.
+Email action plans now have stable source-derived IDs, but there is no durable action ledger or cross-run deduplication. The existing general-purpose pipeline rejects duplicate IDs within a batch, but rerunning it can repeat enabled fake actions. Adapter failures propagate; actions are not retried. Real integrations still need idempotency and recovery before production use. The email harness has no executor at all.
 
 No dashboard, database server, agent framework, or licensing terms have been added.

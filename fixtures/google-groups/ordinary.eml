@@ -1,0 +1,13 @@
+From: Example Team <team+msgappr@example.com>
+To: Moderator Example <moderator@example.com>
+Reply-To: Example Approval <team+msgappr-reply-001@example.com>
+Subject: Ordinary conversation
+Message-ID: <notification-ordinary@example.com>
+In-Reply-To: <previous@example.com>
+References: <root@example.com> <previous@example.com>
+Date: Sat, 10 Oct 2026 09:01:00 +0000
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Hello moderator. Here is an ordinary private note.

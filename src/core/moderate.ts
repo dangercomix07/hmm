@@ -1,7 +1,7 @@
 import type { Config } from "../config/types.js";
 import type { ModerationResult } from "../domain/decision.js";
 import type { Evaluation } from "../domain/evaluation.js";
-import type { PendingItem } from "../domain/item.js";
+import type { Item, PendingItem } from "../domain/item.js";
 import type { SemanticRule } from "../domain/rule.js";
 import type { Evaluator } from "../ports/evaluator.js";
 import { parseItem } from "./parser.js";
@@ -58,12 +58,22 @@ export async function moderate(raw: PendingItem, config: Config, evaluator: Eval
     result.decision.reasons.push({ ruleId: "parser", explanation: error instanceof Error ? error.message : "Parsing failed" });
     return result;
   }
-  result.deterministic = evaluateDeterministicRules(result.item, config.rules.filter(rule => rule.type === "deterministic"));
+  return moderateItem(result.item, config, evaluator);
+}
+
+/** Adapter entry point for an already normalized Item; no transport-specific data. */
+export async function moderateItem(item: Item, config: Config, evaluator: Evaluator): Promise<ModerationResult> {
+  const result: ModerationResult = { inputId: item.id, item, deterministic: [], semantic: { ruleResults: [] }, decision: { status: "REVIEW", reasons: [] } };
+  if (!item.id.trim() || !item.body.trim()) {
+    result.decision.reasons.push({ ruleId: "parser", explanation: "Missing input id or message body" });
+    return result;
+  }
+  result.deterministic = evaluateDeterministicRules(item, config.rules.filter(rule => rule.type === "deterministic"));
   const rules = config.rules.filter(rule => rule.type === "semantic");
   if (rules.length) {
     try {
-      const item = structuredClone(result.item);
-      result.semantic = validateEvaluation(await withTimeout(signal => evaluator.evaluate(item, structuredClone(rules), signal), config.evaluator.timeout_ms), rules);
+      const evaluationItem = structuredClone(item);
+      result.semantic = validateEvaluation(await withTimeout(signal => evaluator.evaluate(evaluationItem, structuredClone(rules), signal), config.evaluator.timeout_ms), rules);
       if (result.semantic.confidence !== undefined && result.semantic.confidence < config.policy.min_confidence) throw new Error("Overall evaluator confidence is too low");
       result.semantic.ruleResults = result.semantic.ruleResults.map(entry => ({
         ...entry,

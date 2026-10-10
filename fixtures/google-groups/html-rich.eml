@@ -1,0 +1,25 @@
+From: Example Team <team+msgappr@example.com>
+To: Moderator Example <moderator@example.com>
+Reply-To: Example Approval <team+msgappr-reply-001@example.com>
+Subject: Message Pending: Navigation test update
+Message-ID: <notification-html-rich@example.com>
+In-Reply-To: <previous@example.com>
+References: <root@example.com> <previous@example.com>
+Date: Sat, 10 Oct 2026 09:01:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>A message has been sent to the Example Team group and is await=
+ing approval.</p><p>The message requires moderation because new members are m=
+oderated.</p><p>You can approve or reject this message in Google Groups, or y=
+ou can approve this message by replying to this email.</p><div class=3D"gmail=
+_quote">---------- Forwarded message ----------<br><b>From:</b> Alex Example =
+&lt;alex@example.com&gt;<br><b>To:</b> Example Team &lt;team@example.com&gt;<=
+br><b>Cc:</b> Pat Example &lt;pat@example.com&gt;<br><b>Date:</b> Sat, 10 Oct=
+ 2026 09:00:00 +0000<br><b>Subject:</b> Navigation test update<br><br>Camera =
+calibration | Testbed<br><br>Completed:<br>Calibrated the camera using 24 ref=
+erence images. Reduced average reprojection error from 2.4 pixels to 0.7 pixe=
+ls and documented the measurement procedure.<br><br>Next steps:<br>Benchmark =
+the robust estimator against 30 large-angle images on Tuesday.</div></body></=
+html>

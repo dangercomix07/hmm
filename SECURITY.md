@@ -11,4 +11,8 @@ This is a local development prototype. It is not ready to moderate a real group.
 - Future live actions need persistent deduplication and recovery. Current fake adapters do not provide those guarantees.
 - Dry-run scope declarations are a contract for trusted adapters, not isolation from malicious code.
 
+The offline email harness emits data-only plans with `executable: false`. Matching a configured sender header and notification shape is not proof of origin. Live approval remains unavailable pending authentication and a disposable-message test.
+
+MIME parsing is bounded to 2 MiB per message. HTML is converted to text without rendering or fetching URLs. Only attachment metadata leaves the MIME adapter. Conflicting text/HTML content, duplicate identity headers, and ambiguous forwarded sections require review. Member content cannot supply reply recipients or modify configuration; it remains untrusted evaluator input. The fake evaluator is only a demo and provides no semantic prompt-injection protection.
+
 If you find a security issue, use the repository's private vulnerability reporting feature if enabled. Otherwise contact the maintainer privately; do not publish secrets or private messages in an issue.

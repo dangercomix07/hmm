@@ -1,0 +1,2 @@
+# Preserve exact RFC/MIME fixture bytes, including CRLF line endings.
+fixtures/google-groups/*.eml -text whitespace=cr-at-eol
