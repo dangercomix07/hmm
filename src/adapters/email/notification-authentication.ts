@@ -19,7 +19,10 @@ export async function verifyNotificationAuthentication(raw: RawEmail, parsed: Pa
   try {
     validateAuthenticationPolicy(policy);
     const headers = parsed.headers;
-    if (parsed.inlineMessage && Object.keys(parsed.inlineMessage.headers).some(k => /^(authentication-results|arc-)/.test(k))) return result("INDETERMINATE", "Authentication headers in forwarded content require review");
+    // Only the outer notification is the authentication subject. A message/rfc822
+    // original legitimately carries its own AR/ARC headers. They are untrusted
+    // member content: neither evidence for the wrapper nor a reason to veto it.
+    // Never merge them into this header map or consult them for ingress provenance.
     const arcNames = ["arc-seal", "arc-message-signature", "arc-authentication-results"];
     const arc = arcNames.map(n => headers[n] ?? []);
     if (arc.some(a => a.length)) {

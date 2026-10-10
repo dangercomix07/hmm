@@ -64,3 +64,10 @@ and durable executor. All ledger states block re-sending. Cancellation reserves
 nothing; reservation and DISPATCHING persist before a send request. No
 unattended mode or force-approval option exists. A rule APPROVE alone is never
 execution permission. Raw Gmail auth provenance remains unverified.
+
+Authentication evidence is scoped to the outer Groups notification. The attached
+message/rfc822 original may contain AR/ARC headers for its own delivery; these
+are ignored for notification trust, not promoted to transport evidence. Nested
+headers cannot repair failed or missing outer evidence, and do not veto otherwise
+valid outer observations. TRUSTED still requires an exact-byte-bound trusted
+ingress attestation; supervised compatibility still requires its explicit flag.

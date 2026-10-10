@@ -44,3 +44,26 @@ and precedes submission. Uncertain actions are never automatically retried.
 No scheduler, autonomous moderation, background polling, retry loop, rejection/
 review email, semantic AI call or deployment was added. Software implementation
 and offline validation are complete; live acceptance remains pending.
+
+## First local live run and notification compatibility correction
+
+The user supplied CLI output for four new live test posts. Observed deterministic
+decisions were A APPROVE, B REJECT (missing next steps), C REVIEW (ambiguous quote),
+and D REJECT (over ten code lines). B/C/D reached no send path. A stopped before
+confirmation because the verifier vetoed authentication headers inside the
+attached original post. No approval was sent by that run; publication remains
+unconfirmed.
+
+Offline inspection of the supplied notification established a supported outer
+Groups notification containing an inline message/rfc822 original with its own
+AR/ARC headers. The verifier now uses only outer authentication headers; nested
+headers neither authenticate nor invalidate the wrapper. Outer failures,
+duplicates, malformed ARC and lack of ingress provenance retain their existing
+behavior. The supplied notification evaluates INDETERMINATE with no trusted
+ingress provenance and is eligible only for the already explicit supervised
+exception. No private headers or original message were added to the repository.
+
+PASS lines now omit failure-oriented rule descriptions. Synthetic regression
+tests cover nested header isolation, outer failures and supervised cancellation.
+Validation after correction: 288 offline tests passed, typecheck and diff check
+passed. No live Google action was performed during the correction.

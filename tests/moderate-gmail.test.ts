@@ -140,3 +140,28 @@ test("two simultaneous sessions cannot both submit the same confirmed action", a
   assert.equal(h.counts().sends, 1);
   assert.ok(results.some(r => r.status === "fulfilled"));
 });
+
+test("Groups wrapper with nested original authentication reaches only explicit supervised confirmation", async t => {
+  const data = message();
+  const outer = "Authentication-Results: mx.google.com; dkim=pass header.i=@googlegroups.com; spf=pass smtp.mailfrom=bounce@googlegroups.com; dmarc=pass header.from=googlegroups.com\r\n" +
+    "ARC-Seal: i=1; a=rsa-sha256; d=google.com; s=synthetic; cv=none; b=YWJj\r\n" +
+    "ARC-Message-Signature: i=1; a=rsa-sha256; d=google.com; s=synthetic; h=from; bh=YWJj; b=YWJj\r\n" +
+    "ARC-Authentication-Results: i=1; mx.google.com; dkim=pass header.i=@googlegroups.com\r\n";
+  const original = Buffer.from(data.raw, "base64url").toString()
+    .replaceAll("team@example.com", "team@googlegroups.com")
+    .replaceAll("team+msgappr@example.com", "team+msgappr@googlegroups.com")
+    .replace("From: Alex", "Authentication-Results: gmr-mx.google.com; dkim=pass header.i=@example.com\r\nARC-Seal: i=2; nested-untrusted-observation\r\nFrom: Alex");
+  data.raw = Buffer.from(outer + original).toString("base64url");
+  const h = await harness(t, data);
+  h.answer("cancel");
+  await runSupervisedSession({
+    ...h.session,
+    groups: { ...groups, group_address: "team@googlegroups.com", notification_senders: ["team+msgappr@googlegroups.com"] },
+    sending: { ...sending, allowed_groups: ["team@googlegroups.com"], allowed_reply_addresses: ["team+msgappr@googlegroups.com"] },
+  });
+  assert.deepEqual(h.counts(), { prompts: 1, sends: 0 });
+  assert.match(h.output.join("\n"), /Authentication: INDETERMINATE/);
+  assert.match(h.output.join("\n"), /WARNING: Notification origin/);
+  assert.match(h.output.join("\n"), /PASS next-present/);
+  assert.doesNotMatch(h.output.join("\n"), /PASS [^\n]*Missing required section|PASS [^\n]*section is empty|PASS [^\n]*placeholder text/);
+});

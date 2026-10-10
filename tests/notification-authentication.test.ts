@@ -67,7 +67,10 @@ test("forged From with absent auth, body text and forwarded auth never confer tr
   const body = { ...absent, raw: Buffer.from(fixture.replace("Completed", "Authentication-Results: mx.google.com; dkim=pass header.i=@example.com\r\nCompleted")) };
   assert.notEqual((await verifyNotificationAuthentication(body, await new MimeEmailParser().parse(body), policy, provider)).status, "TRUSTED");
   const nested = raw(good, fixture.replace("From: Alex", `Authentication-Results: ${good}\r\nFrom: Alex`));
-  assert.notEqual((await trust(nested)).status, "TRUSTED");
+  // Nested results cannot alter independently attested outer authentication.
+  assert.deepEqual(await trust(nested), await trust(raw(good)));
+  const nestedOnly = { ...nested, raw: Buffer.from(fixture.replace("From: Alex", `Authentication-Results: ${good}\r\nFrom: Alex`)) };
+  assert.equal((await trust(nestedOnly)).status, "INDETERMINATE");
 });
 test("duplicate Message-ID, altered reply target, altered group and parser ambiguity cannot prepare", async () => {
   for (const text of [
@@ -113,4 +116,23 @@ test("conflicting DKIM identities and incomplete but indexed ARC cannot be TRUST
     good.replace("header.i=@example.com", "header.d=example.com header.i=@attacker.invalid"),
     `${good}\r\nARC-Seal: i=1; cv=none\r\nARC-Message-Signature: i=1\r\nARC-Authentication-Results: i=1; mx.google.com; dkim=pass`,
   ]) assert.notEqual((await trust(raw(headers))).status, "TRUSTED");
+});
+
+
+test("nested AR/ARC cannot rescue failed, absent, duplicate or malformed outer authentication", async () => {
+  const nested = fixture.replace("From: Alex", `Authentication-Results: ${good}\r\nARC-Seal: i=9; forged\r\nFrom: Alex`);
+  for (const header of [good.replace("spf=pass", "spf=fail"),
+    `${good}\r\nAuthentication-Results: ${good}`, `${good}\r\nARC-Seal: broken`]) {
+    const input = raw(header, nested);
+    assert.notEqual((await trust(input)).status, "TRUSTED");
+    await assert.rejects(prepare(input, true), /Authentication/);
+  }
+  const input = raw(good, nested);
+  const parsed = await new MimeEmailParser().parse(input);
+  const unproven = await verifyNotificationAuthentication(input, parsed, policy);
+  assert.equal(unproven.status, "INDETERMINATE");
+  assert.equal(unproven.reason, "No trusted ingress provenance");
+  assert.equal(unproven.testCompatibilityEligible, true);
+  // The configured provider, not nested headers, is what establishes wrapper trust.
+  assert.equal((await trust(input)).status, "TRUSTED");
 });

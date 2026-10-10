@@ -56,7 +56,7 @@ export async function runSupervisedSession(session: SupervisedSession): Promise<
       "Original update (each source line quoted):",
       ...(item?.body ?? "(unavailable)").split(/\r?\n/).map(line => "  " + quoted(line)),
       `Decision: ${result.moderation.decision.status}`,
-      ...result.moderation.deterministic.map(r => `${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
+      ...result.moderation.deterministic.map(r => r.result === "PASS" ? `PASS ${r.ruleId}` : `${r.result} ${r.ruleId}: ${quoted(r.reason ?? "")}`),
       ...result.moderation.decision.reasons.map(r => quoted(r.explanation)),
     ].join("\n"));
     if (result.plan.kind !== "approval-reply") {
